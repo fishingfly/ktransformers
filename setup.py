@@ -36,7 +36,7 @@ try:
     from torch_musa.utils.musa_extension import BuildExtension, MUSAExtension, MUSA_HOME
 except ImportError:
     MUSA_HOME=None
-    
+
 with_balance = os.environ.get("USE_BALANCE_SERVE", "0") == "1"
 
 class CpuInstructInfo:
@@ -326,7 +326,7 @@ class CMakeBuild(BuildExtension):
             cmake_args += ["-DKTRANSFORMERS_USE_ROCM=ON"]
         else:
             raise ValueError("Unsupported backend: CUDA_HOME, MUSA_HOME, and ROCM_HOME are not set.")
-        
+
         cmake_args = get_cmake_abi_args(cmake_args)
         # log cmake_args
         print("CMake args:", cmake_args)
@@ -412,6 +412,23 @@ class CMakeBuild(BuildExtension):
             ["cmake", "--build", ".", "--verbose", *build_args], cwd=build_temp, check=True
         )
 
+dependencies = [
+    "torch >= 2.3.0",
+    "transformers == 4.43.2",
+    "fastapi >= 0.111.0",
+    "uvicorn >= 0.30.1",
+    "langchain >= 0.2.0",
+    "blessed >= 1.20.0",
+    "accelerate >= 0.31.0",
+    "sentencepiece >= 0.1.97",
+    "setuptools",
+    "ninja",
+    "wheel",
+    "colorlog",
+    "build",
+    "fire",
+    "protobuf"
+]
 if CUDA_HOME is not None or ROCM_HOME is not None:
     ops_module = CUDAExtension('KTransformersOps', [
         'csrc/ktransformers_ext/cuda/custom_gguf/dequant.cu',
@@ -429,6 +446,7 @@ if CUDA_HOME is not None or ROCM_HOME is not None:
         }
     )
 elif MUSA_HOME is not None:
+    dependencies.remove("torch >= 2.3.0")
     SimplePorting(cuda_dir_path="csrc/ktransformers_ext/cuda", mapping_rule={
         # Common rules
         "at::cuda": "at::musa",
@@ -478,6 +496,7 @@ if with_balance:
 setup(
     name=VersionInfo.PACKAGE_NAME,
     version=VersionInfo().get_package_version(),
+    install_requires=dependencies,
     cmdclass={"bdist_wheel":BuildWheelsCommand ,"build_ext": CMakeBuild},
     ext_modules=ext_modules
 )
