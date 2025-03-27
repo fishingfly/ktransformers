@@ -11,9 +11,9 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear  # optimized Kernel on quantized data types
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
-      generate_op: "KLinearMarlin"
+      generate_device: "musa"
+      prefill_device: "musa"
+      generate_op: "KLinearTorch"
       prefill_op: "KLinearTorch"
 - match:
     name: "^lm_head"
@@ -21,18 +21,18 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
-      generate_op: "KLinearMarlin"
+      generate_device: "musa"
+      prefill_device: "musa"
+      generate_op: "KLinearTorch"
       prefill_op: "KLinearTorch"
 - match:
     name: "^model\\.layers\\..*\\.block_sparse_moe$"
     class: ktransformers.models.modeling_mixtral.MixtralSparseMoeBlock
-  replace: 
+  replace:
     class: ktransformers.operators.experts.KMistralSparseMoEBlock
 - match:
     name: "^model\\.layers\\..*\\.block_sparse_moe\\.experts$"
-  replace: 
+  replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
       prefill_device: "cuda"
