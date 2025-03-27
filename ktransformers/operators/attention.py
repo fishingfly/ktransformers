@@ -20,6 +20,7 @@ from ktransformers.util.feature_gate import KTRANSFORMERS_USE_TORCH_NATIVE, KTRA
 import logging
 from transformers.configuration_utils import PretrainedConfig
 from transformers.cache_utils import Cache
+from ktransformers.util.torch_auto_backend import CUDA
 
 try:
     from flash_attn import flash_attn_func
@@ -51,8 +52,8 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = CUDA,
+                 generate_device: str = CUDA,
                  chunck_size: int = 1000,
                  absorb_for_prefill: bool = False,
                  **kwargs):
@@ -638,8 +639,8 @@ class KLlamaAttention(BaseInjectedModule):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = CUDA,
+                 generate_device: str = CUDA,
                  **kwargs):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, prefill_device, generate_device, **kwargs)
         self.orig_module.__init__(orig_module.config,

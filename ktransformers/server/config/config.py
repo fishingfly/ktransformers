@@ -14,6 +14,7 @@ import yaml
 
 from ktransformers.server.config.singleton import Singleton
 from typing import Optional
+from ktransformers.util.torch_auto_backend import CUDA0,CUDA2
 
 
 class Config(metaclass=Singleton):
@@ -93,7 +94,7 @@ class Config(metaclass=Singleton):
         # to make sure it consistent with previous version
         self.model_path: str = self.model_dir
         self.model_name: str = self.model.get("name", "")
-        self.model_device: str = self.model.get("device", "cuda:0")
+        self.model_device: str = self.model.get("device", CUDA0)
         self.gguf_path: Optional[str] = self.model.get("gguf_path", None)
         self.use_cuda_graph = self.model.get("use_cuda_graph", True)
         self.trust_remote_code = self.model.get("trust_remote_code", True)
@@ -106,7 +107,7 @@ class Config(metaclass=Singleton):
         self.total_context = self.model.get("total_context", 2**18)
         self.max_batch_size = self.model.get("max_batch_size", 20 if self.paged else 1)
         self.chunk_prefill_size = self.model.get("chunk_prefill_size", 8192)
-        
+
         self.max_new_tokens = self.model.get("max_new_tokens", 2000)
         self.json_mode = self.model.get("json_mode", False)
         self.healing = self.model.get("healing", False)
@@ -148,7 +149,7 @@ class Config(metaclass=Singleton):
         self.amnesia = self.model.get("amnesia", False)
         self.batch_size = self.model.get("batch_size", 1)
         self.cache_lens = self.model.get("cache_lens", 4096)
-        self.device = self.model.get("device", "cuda:2")
+        self.device = self.model.get("device", CUDA2)
 
         # web config
         self.web: dict = cfg.get("web", {})
