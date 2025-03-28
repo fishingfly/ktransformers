@@ -89,7 +89,7 @@ class DeviceManager:
             device_id: Device index (0, 1, 2, etc.), -1 for CPU, or "cpu" string
 
         Returns:
-            Device string representation (e.g., "cuda:0", "musa:1", "cpu")
+            Device string representation (e.g., "musa:0", "musa:1", "cpu")
         """
         if device_id == -1 or device_id == "cpu":
             return "cpu"

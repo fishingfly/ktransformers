@@ -73,7 +73,7 @@ https://github.com/user-attachments/assets/4c6a8a38-05aa-497d-8eb1-3a5b3918429c
 <p align="center"> -->
 
 <!-- https://github.com/user-attachments/assets/a865e5e4-bca3-401e-94b8-af3c080e6c12 -->
-<!-- 
+<!--
 * **1M 上下文 InternLM 2.5 7B**：以全 bf16 精度运行，使用 24GB VRAM 和 150GB DRAM，可在本地桌面设置中实现。在 1M "针在干草堆中" 测试中达到 92.88% 的成功率，在 128K NIAH 测试中达到 100%。
 
 <p align="center">
@@ -134,13 +134,13 @@ generated = prefill_and_generate(model, tokenizer, input_tensor.cuda(), max_new_
 
 ```yaml
 - match:
-    name: "^model\\.layers\\..*$"  # 正则表达式 
+    name: "^model\\.layers\\..*$"  # 正则表达式
     class: torch.nn.Linear  # 仅匹配同时符合名称和类的模块
   replace:
     class: ktransformers.operators.linear.KTransformerLinear  # 量化数据类型的优化内核
     device: "cpu"   # 初始化时加载该模块的 device
     kwargs:
-      generate_device: "cuda"
+      generate_device: "musa"
       generate_linear_type: "QuantizedLinearMarlin"
 ```
 
@@ -163,4 +163,4 @@ KTransformers 由清华大学 <a href="https://madsys.cs.tsinghua.edu.cn/">MADSy
 
 <h2 id="FAQ">🙋 常见问题</h2>
 
-一些常见问题的答案可以在 [FAQ](doc/en/FAQ.md) 中找到。 
+一些常见问题的答案可以在 [FAQ](doc/en/FAQ.md) 中找到。

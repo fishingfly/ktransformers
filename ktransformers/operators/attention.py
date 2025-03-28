@@ -51,8 +51,8 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  chunck_size: int = 1000,
                  absorb_for_prefill: bool = False,
                  **kwargs):
@@ -638,8 +638,8 @@ class KLlamaAttention(BaseInjectedModule):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  **kwargs):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, prefill_device, generate_device, **kwargs)
         self.orig_module.__init__(orig_module.config,

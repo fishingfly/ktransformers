@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-Description  :  
+Description  :
 Author       : chenht2022
 Date         : 2024-07-25 10:32:05
 Version      : 1.0.0
-LastEditors  : chenht2022 
+LastEditors  : chenht2022
 LastEditTime : 2024-08-06 10:38:05
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 '''
 import os, sys
 import time
@@ -78,9 +78,9 @@ with torch.inference_mode(mode=True):
     up_projs = []
     down_projs = []
     for _ in range(layer_num):
-        gate_proj = torch.randn((expert_num, intermediate_size, hidden_size), dtype=torch.float16, device = "cuda").to("cpu").contiguous()
-        up_proj = torch.randn((expert_num, intermediate_size, hidden_size), dtype=torch.float16, device = "cuda").to("cpu").contiguous()
-        down_proj = torch.randn((expert_num, hidden_size, intermediate_size), dtype=torch.float16, device = "cuda").to("cpu").contiguous()
+        gate_proj = torch.randn((expert_num, intermediate_size, hidden_size), dtype=torch.float16, device = "musa").to("cpu").contiguous()
+        up_proj = torch.randn((expert_num, intermediate_size, hidden_size), dtype=torch.float16, device = "musa").to("cpu").contiguous()
+        down_proj = torch.randn((expert_num, hidden_size, intermediate_size), dtype=torch.float16, device = "musa").to("cpu").contiguous()
         config = cpuinfer_ext.moe.MOEConfig(expert_num, n_routed_experts, hidden_size, intermediate_size, stride, group_min_len, group_max_len, gate_proj.data_ptr(), up_proj.data_ptr(), down_proj.data_ptr(), gate_type, up_type, down_type, hidden_type)
         moe = cpuinfer_ext.moe.MOE(config)
         gate_projs.append(gate_proj)
@@ -95,15 +95,15 @@ with torch.inference_mode(mode=True):
         input = torch.randn((qlen, hidden_size), dtype=torch.float16).contiguous()
         output = torch.empty((qlen, hidden_size), dtype=torch.float16).contiguous()
         input = input / 100
-        
+
         moe = moes[i % layer_num]
         CPUInfer.submit(
-            moe.forward( 
+            moe.forward(
                 qlen,
-                n_routed_experts, 
-                expert_ids.data_ptr(), 
-                weights.data_ptr(), 
-                input.data_ptr(), 
+                n_routed_experts,
+                expert_ids.data_ptr(),
+                weights.data_ptr(),
+                input.data_ptr(),
                 output.data_ptr()
             )
         )

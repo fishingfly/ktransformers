@@ -1,8 +1,8 @@
 """
-Description  :  
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
 from torch import nn
@@ -36,9 +36,9 @@ class RotaryEmbedding(BaseInjectedModule, DeepseekV2RotaryEmbedding):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        #  device: str = "cuda",
-        generate_device: str = "cuda",
-        prefill_device: str = "cuda",
+        #  device: str = "musa",
+        generate_device: str = "musa",
+        prefill_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(
@@ -66,9 +66,9 @@ class RotaryEmbeddingV3(BaseInjectedModule):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        #  device: str = "cuda",
-        generate_device: str = "cuda",
-        prefill_device: str = "cuda",
+        #  device: str = "musa",
+        generate_device: str = "musa",
+        prefill_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(
@@ -76,7 +76,7 @@ class RotaryEmbeddingV3(BaseInjectedModule):
         )
         self.generate_device = generate_device
         self.prefill_device = prefill_device
-    
+
     @torch.no_grad()
     def forward(self, x, position_ids):
         # x: [bs, num_attention_heads, seq_len, head_size]
@@ -91,7 +91,7 @@ class RotaryEmbeddingV3(BaseInjectedModule):
             emb = torch.cat((freqs, freqs), dim=-1)
             cos = emb.cos()
             sin = emb.sin()
-        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)   
+        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)
 
     def load(self):
         self._init(
@@ -117,8 +117,8 @@ class RotaryEmbeddingV2(BaseInjectedModule, LlamaRotaryEmbedding):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        generate_device: str = "cuda",
-        prefill_device: str = "cuda",
+        generate_device: str = "musa",
+        prefill_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(
@@ -154,9 +154,9 @@ class YarnRotaryEmbedding(BaseInjectedModule, DeepseekV2YarnRotaryEmbedding):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        #  device: str = "cuda",
-        generate_device: str = "cuda",
-        prefill_device: str = "cuda",
+        #  device: str = "musa",
+        generate_device: str = "musa",
+        prefill_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(
@@ -198,9 +198,9 @@ class YarnRotaryEmbedding(BaseInjectedModule, DeepseekV2YarnRotaryEmbedding):
 #         gguf_loader: GGUFLoader,
 #         config: PretrainedConfig,
 #         orig_module: nn.Module,
-#         #  device: str = "cuda",
-#         generate_device: str = "cuda",
-#         prefill_device: str = "cuda",
+#         #  device: str = "musa",
+#         generate_device: str = "musa",
+#         prefill_device: str = "musa",
 #         **kwargs,
 #     ):
 #         BaseInjectedModule.__init__(
@@ -224,9 +224,9 @@ class YarnRotaryEmbeddingV3(BaseInjectedModule):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        #  device: str = "cuda",
-        generate_device: str = "cuda",
-        prefill_device: str = "cuda",
+        #  device: str = "musa",
+        generate_device: str = "musa",
+        prefill_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(
@@ -234,7 +234,7 @@ class YarnRotaryEmbeddingV3(BaseInjectedModule):
         )
         self.generate_device = generate_device
         self.prefill_device = prefill_device
-    
+
     def load(self):
         kwargs = {
             key: self.config.rope_scaling[key]
@@ -270,7 +270,7 @@ class YarnRotaryEmbeddingV3(BaseInjectedModule):
             emb = torch.cat((freqs, freqs), dim=-1)
             cos = emb.cos()* self._mscale
             sin = emb.sin()* self._mscale
-        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)  
+        return cos.to(dtype=x.dtype), sin.to(dtype=x.dtype)
 
     def _init(
         self,
@@ -332,8 +332,8 @@ class DynamicNTKScalingRotaryEmbedding(
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        prefill_device: str = "cuda",
-        generate_device: str = "cuda",
+        prefill_device: str = "musa",
+        generate_device: str = "musa",
         **kwargs,
     ):
         BaseInjectedModule.__init__(

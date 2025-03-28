@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 """
-Description  :  
+Description  :
 Author       : Jianwei Dong
 Date         : 2024-08-28 10:32:05
 Version      : 1.0.0
-LastEditors  : Jianwei Dong 
+LastEditors  : Jianwei Dong
 LastEditTime : 2024-08-28 10:32:05
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 import os, sys
 import time
@@ -87,8 +87,8 @@ def bench_linear(cache_seqlen: int, device):
 
 bench_linear(1024, "cpu")
 bench_linear(4096, "cpu")
-bench_linear(1024, "cuda")
-bench_linear(4096, "cuda")
-bench_linear(16384, "cuda")
-bench_linear(32768, "cuda")
-bench_linear(65536, "cuda")
+bench_linear(1024, "musa")
+bench_linear(4096, "musa")
+bench_linear(16384, "musa")
+bench_linear(32768, "musa")
+bench_linear(65536, "musa")
