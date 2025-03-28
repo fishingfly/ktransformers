@@ -14,8 +14,11 @@ elif MUSA_HOME is not None:
     torch.cuda = torch.musa
     torch.cuda.CUDAGraph = torch.musa.MUSAGraph
 
-    torch.cuda.is_available = torch.musa.is_available
-    torch.cuda.current_device = lambda : f'musa:{torch.musa.current_device()}'
+    # torch.cuda.nvtx.range_push = _pass_pvtx
+    # torch.cuda.nvtx.range_pop = _pass_pvtx
+    # torch.cuda.nvtx.range = _pass_pvtx
+    # torch.cuda.is_available = torch.musa.is_available
+    # torch.cuda.current_device = lambda : f'musa:{torch.musa.current_device()}'
     torch.cuda.device_count = torch.musa.device_count
     torch.cuda.set_device = torch.musa.set_device
     torch.cuda.DoubleTensor = torch.musa.DoubleTensor
