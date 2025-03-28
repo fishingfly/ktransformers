@@ -42,6 +42,19 @@ class DeviceManager:
                         return self.to(device, non_blocking=non_blocking, memory_format=memory_format)
 
                     torch.Tensor.cuda = tensor_cuda
+
+                    # **Monkey Patch `torch.cuda.current_stream`**
+                    original_musa_current_stream = torch.musa.current_stream
+
+                    def patch_stream_object(stream):
+                        if not hasattr(stream, "cuda_stream"):
+                            stream.cuda_stream = stream.musa_stream
+                        return stream
+
+                    def patched_current_stream(device=None):
+                        return patch_stream_object(original_musa_current_stream(device))
+
+                    torch.cuda.current_stream = patched_current_stream
                     return GPUVendor.MooreThreads
             except (ImportError, AttributeError):
                 pass
