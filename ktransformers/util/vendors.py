@@ -25,6 +25,8 @@ class DeviceManager:
             try:
                 import torch_musa
                 if torch.musa.is_available():
+                    torch.cuda = torch.musa
+                    torch.cuda.CUDAGraph = torch.musa.MUSAGraph
                     return GPUVendor.MooreThreads
             except (ImportError, AttributeError):
                 pass
