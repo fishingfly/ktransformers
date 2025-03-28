@@ -25,6 +25,23 @@ class DeviceManager:
             try:
                 import torch_musa
                 if torch.musa.is_available():
+                    torch.cuda = torch.musa
+                    torch.cuda.CUDAGraph = torch.musa.MUSAGraph
+                    # original_empty = torch.empty
+                    # def patched_empty(*args, **kwargs):
+                    #     if 'device' in kwargs and kwargs['device'] == 'cuda':
+                    #         kwargs['device'] = 'musa'
+                    #     result = original_empty(*args, **kwargs)
+                    #     return result
+                    # torch.empty = patched_empty
+                    def tensor_cuda(self, device=None, non_blocking=False, memory_format=None):
+                        if device is None:
+                            device = "musa"
+                        elif isinstance(device, int):
+                            device = f"musa:{device}"
+                        return self.to(device, non_blocking=non_blocking, memory_format=memory_format)
+
+                    torch.Tensor.cuda = tensor_cuda
                     return GPUVendor.MooreThreads
             except (ImportError, AttributeError):
                 pass
