@@ -47,15 +47,15 @@ elif MUSA_HOME is not None:
     # torch.cuda.memory_reserved = torch.musa.memory_reserved
     # torch.cuda.max_memory_reserved = torch.musa.max_memory_reserved
 
-    original_empty = torch.empty
-    def patched_empty(*args, **kwargs):
-        if 'device' in kwargs and kwargs['device'] == 'cuda':
-            kwargs['device'] = 'musa'
-        result = original_empty(*args, **kwargs)
-        return result
-    torch.empty = patched_empty
+    # original_empty = torch.empty
+    # def patched_empty(*args, **kwargs):
+    #     if 'device' in kwargs and kwargs['device'] == 'cuda':
+    #         kwargs['device'] = 'musa'
+    #     result = original_empty(*args, **kwargs)
+    #     return result
+    # torch.empty = patched_empty
 
-    torch.Tensor.double = torch.Tensor.float
+    # torch.Tensor.double = torch.Tensor.float
 
     # **Monkey Patch `torch.Tensor.cuda()`**
     def tensor_cuda(self, device=None, non_blocking=False, memory_format=None):
