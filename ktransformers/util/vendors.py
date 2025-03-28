@@ -25,6 +25,7 @@ class DeviceManager:
             try:
                 import torch_musa
                 if torch.musa.is_available():
+                    print("Torch backend loaded: MUSA")
                     torch.cuda = torch.musa
                     torch.cuda.CUDAGraph = torch.musa.MUSAGraph
                     # original_empty = torch.empty
