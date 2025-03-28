@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-Description  :  
+Description  :
 Author       : chenht2022
 Date         : 2024-07-16 10:43:18
 Version      : 1.0.0
-LastEditors  : chenht2022 
+LastEditors  : chenht2022
 LastEditTime : 2024-07-25 10:32:53
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 '''
 import os, sys
 import time
@@ -65,9 +65,9 @@ def bench_mlp(quant_mode: str):
         up_projs = []
         down_projs = []
         for _ in range(layer_num):
-            gate_proj = torch.randn((intermediate_size, hidden_size), dtype=torch.float32, device = "cuda").to("cpu").contiguous()
-            up_proj = torch.randn((intermediate_size, hidden_size), dtype=torch.float32, device = "cuda").to("cpu").contiguous()
-            down_proj = torch.randn((hidden_size, intermediate_size), dtype=torch.float32, device = "cuda").to("cpu").contiguous()
+            gate_proj = torch.randn((intermediate_size, hidden_size), dtype=torch.float32, device = "musa").to("cpu").contiguous()
+            up_proj = torch.randn((intermediate_size, hidden_size), dtype=torch.float32, device = "musa").to("cpu").contiguous()
+            down_proj = torch.randn((hidden_size, intermediate_size), dtype=torch.float32, device = "musa").to("cpu").contiguous()
             if quant_mode == "qint8":
                 gate_proj_q = torch.quantize_per_tensor(gate_proj, scale, zero_point, torch.qint8)
                 quantized_gate = nnq.Linear(hidden_size, intermediate_size)
@@ -85,7 +85,7 @@ def bench_mlp(quant_mode: str):
                 gate_projs.append(gate_proj.to(proj_type))
                 up_projs.append(up_proj.to(proj_type))
                 down_projs.append(down_proj.to(proj_type))
-        input = torch.randn((layer_num, qlen, hidden_size), dtype=torch.bfloat16, device = "cuda").to("cpu").contiguous()
+        input = torch.randn((layer_num, qlen, hidden_size), dtype=torch.bfloat16, device = "musa").to("cpu").contiguous()
 
         # warm up
         for i in range(warm_up_iter):
@@ -99,7 +99,7 @@ def bench_mlp(quant_mode: str):
         total_time = end - start
         print('Quant mode: ', quant_mode)
         print('Time(s): ', total_time)
-        print('Iteration: ', test_iter) 
+        print('Iteration: ', test_iter)
         print('Time(us) per iteration: ', total_time / test_iter * 1000000)
         print('Bandwidth: ', hidden_size * intermediate_size * 3 * bytes_per_elem * test_iter / total_time / 1000 / 1000 / 1000, 'GB/s')
         print('')

@@ -3,8 +3,8 @@
   replace:
     class: ktransformers.operators.RoPE.RotaryEmbedding
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
+      generate_device: "musa"
+      prefill_device: "musa"
 - match:
     name: "^model\\.layers\\..*$"
     class: torch.nn.Linear  # only match modules matching name and class simultaneously
@@ -35,11 +35,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
-      prefill_device: "cuda"
+      prefill_device: "musa"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda"
+      out_device: "musa"
   recursive: False # don't recursively inject submodules of this module
 
 - match:
@@ -55,5 +55,5 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
+      generate_device: "musa"
+      prefill_device: "musa"

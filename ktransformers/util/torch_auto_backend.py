@@ -7,7 +7,7 @@ except ImportError:
     MUSA_HOME=None
 
 if CUDA_HOME is not None:
-    CUDA = "cuda"
+    CUDA = "musa"
 elif MUSA_HOME is not None:
     CUDA = "musa"
 

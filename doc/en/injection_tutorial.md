@@ -6,7 +6,7 @@
 This tutorial will guide you through the process of injecting custom operators into a model using the KTransformers framework. We will use the DeepSeekV2-Chat model as an example to demonstrate how to inject custom operators into the model step by step. The tutorial will cover the following topics:
 * [How to write injection rules](#how-to-write-injection-rules)
     * [Understanding the structure of the model](#understanding-model-structure)
-* [Multi-GPU](#muti-gpu)    
+* [Multi-GPU](#muti-gpu)
 * [How to write a new operator and inject it into the model](#how-to-write-a-new-operator-and-inject-into-the-model)
 
 ## How to Write Injection Rules
@@ -18,7 +18,7 @@ The basic form of the injection rules for the Inject framework is as follows:
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:0"
+      generate_device: "musa:0"
       # your_op_param_1: 1234
       # your_op_param_2: 5678
   recursive: True
@@ -106,7 +106,7 @@ In the source code of the transformer, MoE is implemented using nn.ModuleList. W
     kwargs:
       generate_device: "cpu"
       generate_op: "MLPCPUExperts"
-      out_device: "cuda"
+      out_device: "musa"
   recursive: False # Don't recursively inject submodules of this module
 ```
 
@@ -129,7 +129,7 @@ For the remaining linear layer modules, we aim to use quantized operators to sav
   replace:
     class: ktransformers.operators.linear.KTransformersLinear  # Optimized kernel on quantized data types
     kwargs:
-      generate_device: "cuda"
+      generate_device: "musa"
       generate_op: "QuantizedLinearMarlin"
 ```
 ## Injection of Modules with Pre-calculated Buffers
@@ -151,8 +151,8 @@ Finally, we set a fallback basic attribute generate_device for all modules:
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda"
-  
+      generate_device: "musa"
+
 - match:
     name: "^model.embed_tokens"
   replace:
@@ -165,7 +165,7 @@ Through these two rules, we place all previously unmatched layers (and their sub
 
 ## Muti-GPU
 
-If you have multiple GPUs, you can set the device for each module to different GPUs. 
+If you have multiple GPUs, you can set the device for each module to different GPUs.
 DeepseekV2-Chat got 60 layers, if we got 2 GPUs, we can allocate 30 layers to each GPU. Complete multi GPU rule examples [here](https://github.com/kvcache-ai/ktransformers/blob/main/ktransformers/optimize/optimize_rules/DeepSeek-V2-Chat-multi-gpu.yaml).
 
 
@@ -183,11 +183,11 @@ First of all, for multi-GPU, we have to inject an new operator `KDeepseekV2Model
   replace:
     class: "ktransformers.operators.models.KDeepseekV2Model"
     kwargs:
-      transfer_map: 
-        30: "cuda:1"
+      transfer_map:
+        30: "musa:1"
 ```
 
-And we have to set the device for each module in the model. 
+And we have to set the device for each module in the model.
 
 For example, for `routed experts`, the yaml for one GPU is:
 ```yaml
@@ -196,12 +196,12 @@ For example, for `routed experts`, the yaml for one GPU is:
   replace:
     class: ktransformers.operators.experts.KTransformersExperts     # Custom MoE kernel with expert parallelism
     kwargs:
-      generate_device: "cuda:0"
+      generate_device: "musa:0"
       generate_op: "MLPCUDAExperts"
-      out_device: "cuda:0"
+      out_device: "musa:0"
   recursive: False # Don't recursively inject submodules of this module
 ```
-But for two GPUs, we need to set the device for each module in the model. 
+But for two GPUs, we need to set the device for each module in the model.
 
 ```yaml
 # allcate 0-29 layers‘s out_device to cuda:0
@@ -212,7 +212,7 @@ But for two GPUs, we need to set the device for each module in the model.
     kwargs:
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda:0"
+      out_device: "musa:0"
   recursive: False # don't recursively inject submodules of this module
 
 # allocate 30-59 layers‘s out_device to cuda:1
@@ -223,7 +223,7 @@ But for two GPUs, we need to set the device for each module in the model.
     kwargs:
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda:1"
+      out_device: "musa:1"
   recursive: False # don't recursively inject submodules of this module
 ```
 For other modules, we can set the device in the same way.
@@ -242,7 +242,7 @@ class LinearTorchInject(BaseInjectedModule):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        generate_device: str = "cuda",
+        generate_device: str = "musa",
         **kwargs,
     ):
         super().__init__(key, gguf_loader, config, orig_module, generate_device, **kwargs)
@@ -256,7 +256,7 @@ class LinearTorchInject(BaseInjectedModule):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        generate_device: str = "cuda",
+        generate_device: str = "musa",
         my_param: bool = True,
         **kwargs,
     ):
@@ -265,13 +265,13 @@ class LinearTorchInject(BaseInjectedModule):
 ```
 Then our injection rule can be written as:
 ```yaml
-- match: 
+- match:
     name: "^model\\.layers\\..*$"  # Regular expression matches the module name.
     class: torch.nn.Linear  # Type restrictions can be added.
   replace:
     class: ktransformers.operators.linear.LinearTorchInject  # Inject module path
     kwargs: # Extra parameters
-      generate_device: "cuda"
+      generate_device: "musa"
       my_param: True
 ```
 For the linear module, it is also necessary to read weights from a gguf file. We provide the `KLinearBase` class to help users read weights from gguf files. Users only need to inherit and implement the load, unload, and forward functions. Therefore, a fully injectable linear class would look like this:
@@ -283,7 +283,7 @@ class LinearTorchInject(BaseInjectedModule, KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        generate_device: str = "cuda",
+        generate_device: str = "musa",
         **kwargs,
     ):
         super().__init__(key, gguf_loader, config, orig_module, generate_device, **kwargs)
@@ -292,7 +292,7 @@ class LinearTorchInject(BaseInjectedModule, KLinearBase):
         self.dtype = torch.get_default_dtype()
         self.w = None
         self.has_bias = False
-    
+
     def load(self, w: dict | nn.Parameter | tuple | None = None, device: str|None = None):
         if device is None: device = self.device
         if w is None: w = self.load_weight(device=device)

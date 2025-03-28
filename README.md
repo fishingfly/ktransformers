@@ -15,9 +15,9 @@
 <h2 id="intro">🎉 Introduction</h2>
 KTransformers, pronounced as Quick Transformers, is designed to enhance your 🤗 <a href="https://github.com/huggingface/transformers">Transformers</a> experience with advanced kernel optimizations and placement/parallelism strategies.
 <br/><br/>
-KTransformers is a flexible, Python-centric framework designed with extensibility at its core. 
+KTransformers is a flexible, Python-centric framework designed with extensibility at its core.
 By implementing and injecting an optimized module with a single line of code, users gain access to a Transformers-compatible
-interface, RESTful APIs compliant with OpenAI and Ollama, and even a simplified ChatGPT-like web UI. 
+interface, RESTful APIs compliant with OpenAI and Ollama, and even a simplified ChatGPT-like web UI.
 <br/><br/>
 Our vision for KTransformers is to serve as a flexible platform for experimenting with innovative LLM inference optimizations. Please let us know if you need any other features.
 
@@ -29,8 +29,8 @@ Our vision for KTransformers is to serve as a flexible platform for experimentin
 * **Feb 15, 2025**: Longer Context (from 4K to 8K for 24GB VRAM) & Slightly Faster Speed （+15%, up to 16 Tokens/s), update [docs](./doc/en/DeepseekR1_V3_tutorial.md) and [online books](https://kvcache-ai.github.io/ktransformers/).
 * **Feb 10, 2025**: Support Deepseek-R1 and V3 on single (24GB VRAM)/multi gpu and 382G DRAM, up to 3~28x speedup. For detailed show case and reproduction tutorial, see [here](./doc/en/DeepseekR1_V3_tutorial.md).
 * **Aug 28, 2024**: Decrease DeepseekV2's required VRAM from 21G to 11G.
-* **Aug 15, 2024**: Update detailed [tutorial](doc/en/injection_tutorial.md) for injection and multi-GPU. 
-* **Aug 14, 2024**: Support llamfile as linear backend. 
+* **Aug 15, 2024**: Update detailed [tutorial](doc/en/injection_tutorial.md) for injection and multi-GPU.
+* **Aug 14, 2024**: Support llamfile as linear backend.
 * **Aug 12, 2024**: Support multiple GPU; Support new model: mixtral 8\*7B  and 8\*22B; Support q2k, q3k, q5k dequant on gpu.
 * **Aug 9, 2024**: Support windows native.
 <!-- * **Aug 28, 2024**: Support 1M context under the InternLM2.5-7B-Chat-1M model, utilizing 24GB of VRAM and 150GB of DRAM. The detailed tutorial is [here](./doc/en/long_context_tutorial.md). -->
@@ -45,15 +45,15 @@ https://github.com/user-attachments/assets/ebd70bfa-b2c1-4abb-ae3b-296ed38aa285
 </p>
 
 - **[NEW!!!] Local 671B DeepSeek-Coder-V3/R1:** Running its Q4_K_M version using only 14GB VRAM and 382GB DRAM([Tutorial](./doc/en/DeepseekR1_V3_tutorial.md)).
-	- Prefill Speed (tokens/s): 
- 		- KTransformers: 54.21 (32 cores) → 74.362 (dual-socket, 2×32 cores) → 255.26 (optimized AMX-based MoE kernel, V0.3 only) → 286.55 (selectively using 6 experts, V0.3 only)  
- 		- Compared to 10.31 tokens/s in llama.cpp with 2×32 cores, achieving up to **27.79× speedup**.  
- 	- Decode Speed (tokens/s):  
- 		- KTransformers: 8.73 (32 cores) → 11.26 (dual-socket, 2×32 cores) → 13.69 (selectively using 6 experts, V0.3 only)  
- 		- Compared to 4.51 tokens/s in llama.cpp with 2×32 cores, achieving up to **3.03× speedup**.  
+	- Prefill Speed (tokens/s):
+ 		- KTransformers: 54.21 (32 cores) → 74.362 (dual-socket, 2×32 cores) → 255.26 (optimized AMX-based MoE kernel, V0.3 only) → 286.55 (selectively using 6 experts, V0.3 only)
+ 		- Compared to 10.31 tokens/s in llama.cpp with 2×32 cores, achieving up to **27.79× speedup**.
+ 	- Decode Speed (tokens/s):
+ 		- KTransformers: 8.73 (32 cores) → 11.26 (dual-socket, 2×32 cores) → 13.69 (selectively using 6 experts, V0.3 only)
+ 		- Compared to 4.51 tokens/s in llama.cpp with 2×32 cores, achieving up to **3.03× speedup**.
 	- Upcoming Open Source Release:
-		- AMX optimizations and selective expert activation will be open-sourced in V0.3.  
-		- Currently available only in preview binary distribution, which can be downloaded [here](./doc/en/DeepseekR1_V3_tutorial.md).  
+		- AMX optimizations and selective expert activation will be open-sourced in V0.3.
+		- Currently available only in preview binary distribution, which can be downloaded [here](./doc/en/DeepseekR1_V3_tutorial.md).
 
 - **Local 236B DeepSeek-Coder-V2:** Running its Q4_K_M version using only 21GB VRAM and 136GB DRAM, attainable on a local desktop machine, which scores even better than GPT4-0613 in [BigCodeBench](https://huggingface.co/blog/leaderboard-bigcodebench).
 
@@ -110,7 +110,7 @@ To install KTransformers, follow the official [Installation Guide](https://kvcac
 
 
 <h2 id="tutorial">📃 Brief Injection Tutorial</h2>
-At the heart of KTransformers is a user-friendly, template-based injection framework. 
+At the heart of KTransformers is a user-friendly, template-based injection framework.
 This allows researchers to easily replace original torch modules with optimized variants. It also simplifies the process of combining multiple optimizations, allowing the exploration of their synergistic effects.
 
 </br>
@@ -145,13 +145,13 @@ Below is an example of a YAML template for replacing all original Linear modules
 
 ```yaml
 - match:
-    name: "^model\\.layers\\..*$"  # regular expression 
+    name: "^model\\.layers\\..*$"  # regular expression
     class: torch.nn.Linear  # only match modules matching name and class simultaneously
   replace:
     class: ktransformers.operators.linear.KTransformerLinear  # optimized Kernel on quantized data types
     device: "cpu"   # which devices to load this module when initializing
     kwargs:
-      generate_device: "cuda"
+      generate_device: "musa"
       generate_linear_type: "QuantizedLinearMarlin"
 ```
 

@@ -44,9 +44,9 @@ from-https://github.com/kvcache-ai/ktransformers/issues/129#issue-2842799552
     - match:
        name: "^model\\.layers\\.([4-10])\\.mlp\\.experts$" # inject experts in layer 4~10 as marlin expert
      replace:
-       class: ktransformers.operators.experts.KTransformersExperts  
+       class: ktransformers.operators.experts.KTransformersExperts
        kwargs:
-         generate_device: "cuda:0" # run in cuda:0; marlin only support GPU
+         generate_device: "musa:0" # run in cuda:0; marlin only support GPU
          generate_op:  "KExpertsMarlin" # use marlin expert
      recursive: False
     ```
@@ -150,12 +150,12 @@ Attention, for better perfomance, you can check this [method](https://github.com
 >https://github.com/kvcache-ai/ktransformers/blob/89f8218a2ab7ff82fa54dbfe30df741c574317fc/ktransformers/operators/attention.py#L320-L326
 >
 >```diff
->- attn_output = flash_attn_func( 
->-     query_states, 
->-     key_states, 
->-     value_states_padded, 
->-     softmax_scale=self.softmax_scale, 
->-     causal=True, 
+>- attn_output = flash_attn_func(
+>-     query_states,
+>-     key_states,
+>-     value_states_padded,
+>-     softmax_scale=self.softmax_scale,
+>-     causal=True,
 >- )
 >+ attn_output = F.scaled_dot_product_attention(
 >+     query_states.transpose(1, 2),

@@ -64,7 +64,7 @@ Moreover, as an extensible framework, KTransformers is set to support more advan
 
 ## YAML Template
 
-To implement the above optimizations in KTransformers, users need to write a YAML file containing the optimized rules. 
+To implement the above optimizations in KTransformers, users need to write a YAML file containing the optimized rules.
 KTransformers will iterate through all sub-modules of the model, match rules specified in the YAML rule file, and replace them with advanced modules as specified.
 
 <p align="center">
@@ -83,7 +83,7 @@ Specifically, the following rules are used:
 
 <h3 id="mla">MLA</h3>
 
-For attention module injection, we only need to match the module name used in Transformers using a regular expression and replace it with our pre-implemented module. 
+For attention module injection, we only need to match the module name used in Transformers using a regular expression and replace it with our pre-implemented module.
 The YAML rule is listed below.
 
 ```yaml
@@ -93,8 +93,8 @@ The YAML rule is listed below.
     class: ktransformers.operators.attention.KDeepseekV2Attention # optimized MLA implementation
 ```
 
-As we can see, each rule in the YAML file has two parts: `match` and `replace`. 
-The match part specifies which module should be replaced, and the replace part specifies the module to be injected into the model along with the initialization keywords. 
+As we can see, each rule in the YAML file has two parts: `match` and `replace`.
+The match part specifies which module should be replaced, and the replace part specifies the module to be injected into the model along with the initialization keywords.
 
 <h3 id="experts">Routed Experts </h3>
 
@@ -112,11 +112,11 @@ In the original implementation of Transformers, MoE is implemented using `nn.Mod
     class: ktransformers.operators.experts.KTransformersExperts     # custom MoE Kernel with expert parallelism
     device: "cpu"   # device to load this module on initialization
     kwargs:
-      prefill_device: "cuda"
+      prefill_device: "musa"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda"
+      out_device: "musa"
   recursive: False # don't recursively inject submodules of this module
 ```
 
@@ -131,19 +131,19 @@ If we inject the expert list as a custom module, we can't use the interface in `
 
 <h3 id="linear">Other Linear Modules</h3>
 
-For the remained linear modules, we want to use our quantization kernels. However, we don't want to inject linear in the MLA operator because we currently don't know the effect of using quantization in MLA. 
-So, we can change our regular expression and add a class check in the match part of the rule. Only modules matching both name and class simultaneously will be injected. 
+For the remained linear modules, we want to use our quantization kernels. However, we don't want to inject linear in the MLA operator because we currently don't know the effect of using quantization in MLA.
+So, we can change our regular expression and add a class check in the match part of the rule. Only modules matching both name and class simultaneously will be injected.
 We also need to transfer some keywords similar to the injection of experts. Here is the YAML rule:
 
 ```yaml
 - match:
-    name: "^model\\.layers\\.(?!.*self_attn).*$"  # regular expression 
+    name: "^model\\.layers\\.(?!.*self_attn).*$"  # regular expression
     class: torch.nn.Linear  # only match modules matching name and class simultaneously
   replace:
     class: ktransformers.operators.linear.KTransformersLinear  # optimized Kernel on quantized data types
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
+      generate_device: "musa"
+      prefill_device: "musa"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 ```
@@ -161,7 +161,7 @@ The original model is initialized on the meta device. The rotary embedding modul
 
 ## Wrap Your Custom Module
 
-We have implemented some modules, but you may need to inject your custom module using KTransformers. 
+We have implemented some modules, but you may need to inject your custom module using KTransformers.
 The only thing you need to do is wrap your custom module and write YAML files. We provide a base operator specifying interfaces an injection module should have. You only need to inherit from that module and change the `__init__`, `forward`, or `load` function as needed.
 
 - The `__init__` function of the base operator maintains the necessary information for injection and execution of the KTransformers framework. To override this function, subclass modules need to call the base operator's `__init__` function in their own initializer.

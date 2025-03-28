@@ -36,28 +36,28 @@
 
 > **Feb 10, 2025**: Support DeepseekR1 and V3 on single (24GB VRAM)/multi gpu and 382G DRAM, up to 3~28x speedup.<br>
 
-Hi, we're the KTransformers team (formerly known for our local CPU/GPU hybrid inference open source project with DeepSeek-V2).  
+Hi, we're the KTransformers team (formerly known for our local CPU/GPU hybrid inference open source project with DeepSeek-V2).
 
-We've heard your requests for DeepSeek-R1/V3 support—and we're excited to finally deliver! 
+We've heard your requests for DeepSeek-R1/V3 support—and we're excited to finally deliver!
 Apologies for the wait, but we've been cooking up something truly amazing!
 
-Today, we're proud to announce that we not only support DeepSeek-R1/V3, as showcased in the video below:  
+Today, we're proud to announce that we not only support DeepSeek-R1/V3, as showcased in the video below:
 
 https://github.com/user-attachments/assets/ebd70bfa-b2c1-4abb-ae3b-296ed38aa285
 
 </p>
 
 - **[NEW!!!] Local 671B DeepSeek-Coder-V3/R1:** Running its Q4_K_M version using only 14GB VRAM and 382GB DRAM.
-	- Prefill Speed (tokens/s): 
- 		- KTransformers: 54.21 (32 cores) → 74.362 (dual-socket, 2×32 cores) → 255.26 (optimized AMX-based MoE kernel, V0.3 only) → 286.55 (selectively using 6 experts, V0.3 only)  
- 		- Compared to 10.31 tokens/s in llama.cpp with 2×32 cores, achieving up to **27.79× speedup**.  
- 	- Decode Speed (tokens/s):  
- 		- KTransformers: 8.73 (32 cores) → 11.26 (dual-socket, 2×32 cores) → 13.69 (selectively using 6 experts, V0.3 only)  
- 		- Compared to 4.51 tokens/s in llama.cpp with 2×32 cores, achieving up to **3.03× speedup**.  
-  
+	- Prefill Speed (tokens/s):
+ 		- KTransformers: 54.21 (32 cores) → 74.362 (dual-socket, 2×32 cores) → 255.26 (optimized AMX-based MoE kernel, V0.3 only) → 286.55 (selectively using 6 experts, V0.3 only)
+ 		- Compared to 10.31 tokens/s in llama.cpp with 2×32 cores, achieving up to **27.79× speedup**.
+ 	- Decode Speed (tokens/s):
+ 		- KTransformers: 8.73 (32 cores) → 11.26 (dual-socket, 2×32 cores) → 13.69 (selectively using 6 experts, V0.3 only)
+ 		- Compared to 4.51 tokens/s in llama.cpp with 2×32 cores, achieving up to **3.03× speedup**.
+
 
 We also give our upcoming optimizations previews, including an Intel AMX-accelerated kernel and a selective expert activation method, which will significantly enhance performance. With V0.3-preview, we achieve up to 286 tokens/s for prefill, making it up to **28× faster than llama.cpp** for local inference.
-The binary distribution is available now and the source code will come ASAP! Check out the wheel package [here](https://github.com/kvcache-ai/ktransformers/releases/download/v0.1.4/ktransformers-0.3.0rc0+cu126torch26fancy-cp311-cp311-linux_x86_64.whl)  
+The binary distribution is available now and the source code will come ASAP! Check out the wheel package [here](https://github.com/kvcache-ai/ktransformers/releases/download/v0.1.4/ktransformers-0.3.0rc0+cu126torch26fancy-cp311-cp311-linux_x86_64.whl)
 
 > **Feb 15, 2025**: KTransformers V0.2.1: Longer Context (from 4K to 8K for 24GB VRAM) & Slightly Faster Speed （+15%) (Up to 16 Tokens/s), update docs [here](./doc/en/DeepseekR1_V3_tutorial.md) and [online books](https://kvcache-ai.github.io/ktransformers/).
 
@@ -93,9 +93,9 @@ Integrated the highly efficient Triton MLA Kernel from the fantastic sglang proj
 "6 experts" case is part of V0.3's preview
 
 
-| Prompt | hi (2) | 1K (969) | 2K (1930) | 4K (3846) | 8K (7678) | 
-| --- | --- | --- | --- | --- | --- | 
-| Output length | 10tokens | 300tokens | 300tokens | 300tokens | 300tokens | 
+| Prompt | hi (2) | 1K (969) | 2K (1930) | 4K (3846) | 8K (7678) |
+| --- | --- | --- | --- | --- | --- |
+| Output length | 10tokens | 300tokens | 300tokens | 300tokens | 300tokens |
 | **6 experts V0.2.0** |  |  |  |  |  |
 | Prefill token/s | 13 | 105 | 102 | 88 | CUDA OOM |
 | decode token/s | 16.8 | 15.4 | 14.2 | 13.0 | CUDA OOM |
@@ -121,8 +121,8 @@ Integrated the highly efficient Triton MLA Kernel from the fantastic sglang proj
 
 "6 experts" case is part of V0.3's preview
 
-| Prompt<br>(500 tokens) | Dual socket Ktrans (6 experts) | Dual socket Ktrans (8 experts) | Single socket Ktrans (6 experts) | Single socket Ktrans (8 experts)| llama.cpp (8 experts) | 
-| --- | --- | --- | --- | --- | --- | 
+| Prompt<br>(500 tokens) | Dual socket Ktrans (6 experts) | Dual socket Ktrans (8 experts) | Single socket Ktrans (6 experts) | Single socket Ktrans (8 experts)| llama.cpp (8 experts) |
+| --- | --- | --- | --- | --- | --- |
 | Prefill token/s | 97.32 | 82.94 | 65.14 | 54.21 | 10.31 |
 | Decode token/s | 13.69 | 12.208 | 10.303 | 8.73 |4.51 |
 
@@ -146,14 +146,14 @@ Integrated the highly efficient Triton MLA Kernel from the fantastic sglang proj
 **The prefill of KTrans V0.3 is up to <u>3.45x</u> times faster than KTrans V0.2, and is up to <u>27.79x</u> times faster than llama.cpp.**
 **The decoding speed is the same as KTrans V0.2 (6 experts version) so it is omitted**
 
-The main acceleration comes from 
+The main acceleration comes from
 - Intel AMX instruction set and our specially designed cache friendly memory layout
 - Expert selection strategy that selects fewer experts based on offline profile results of out of domain data
 
 
-*From our research on DeepSeekV2, DeepSeekV3 and DeepSeekR1, 
-when we slightly decrease the activation experts num in inference, 
-the output quality doesn't change. But the speed of decoding and prefill 
+*From our research on DeepSeekV2, DeepSeekV3 and DeepSeekR1,
+when we slightly decrease the activation experts num in inference,
+the output quality doesn't change. But the speed of decoding and prefill
 is speed up which is inspiring. So our showcase makes use of this finding*
 
 ## How to Run
@@ -170,8 +170,8 @@ If you want to use long context(longer than 20K) for prefill, enable the matrix 
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention # optimized MLA implementation
     kwargs:
-      generate_device: "cuda"
-      prefill_device: "cuda"
+      generate_device: "musa"
+      prefill_device: "musa"
       absorb_for_prefill: True # change this to True to enable long context(prefill may slower).
 ```
 
@@ -198,7 +198,7 @@ numactl -N 1 -m 1 python ./ktransformers/local_chat.py --model_path <your model 
 `<your model path>` can be local or set from online hugging face like deepseek-ai/DeepSeek-V3. If online encounters connection problem, try use mirror (hf-mirror.com) <br>
 `<your gguf path>` can also be online, but as its large we recommend you download it and quantize the model to what you want (notice it's the dir path) <br>
 `--max_new_tokens 1000` is the max output token length. If you find the answer is truncated, you
-can increase the number for longer answer (But be aware of OOM, and increase it will slow down the generation rate.). 
+can increase the number for longer answer (But be aware of OOM, and increase it will slow down the generation rate.).
 
 The command `numactl -N 1 -m 1` aims to advoid data transfer between numa nodes<br>
 Attention! If you are testing R1 and it may skip thinking. So you can add arg: `--force_think true`. This is explained in [FAQ](#faq) part
@@ -234,21 +234,21 @@ python -m ktransformers.local_chat --model_path <your model path> --gguf_path <y
 The parameters' meaning is the same with V0.2. But As we  use dual socket, we set cpu_infer to 65
 
 ## Some Explanations
-1. Also we want to make further use of our two NUMA nodes on Xeon Gold cpu. 
-To avoid the cost of data transfer between nodes, we "copy" the critical matrix on 
+1. Also we want to make further use of our two NUMA nodes on Xeon Gold cpu.
+To avoid the cost of data transfer between nodes, we "copy" the critical matrix on
 both nodes which takes more memory consumption but accelerates the prefill and decoding process.
 But this method takes huge memory and slow when loading weights, So be patient when loading
 and monitor the memory usage. We are going to optimize this huge memory overhead. Stay tuned~ <br>
-2. The command args `--cpu_infer 65` specifies how many cores to use (it's ok that it exceeds the physical number, 
+2. The command args `--cpu_infer 65` specifies how many cores to use (it's ok that it exceeds the physical number,
 but it's not the more the better. Adjust it slightly lower to your actual number of cores)<br>
 
 3. Why CPU/GPU Hybrid Inference?
-DeepSeek's MLA operators are highly computationally intensive. While running everything on CPU is possible, offloading the heavy computations to the GPU results in a massive performance boost.  
+DeepSeek's MLA operators are highly computationally intensive. While running everything on CPU is possible, offloading the heavy computations to the GPU results in a massive performance boost.
 
 4. Where Does the Speedup Come From?
 
-   - Expert Offload: Unlike traditional layer-based or KVCache offloading (as seen in llama.cpp), we offload the expert computation to the CPU and MLA/KVCache to GPU, aligning perfectly with DeepSeek’s architecture for optimal efficiency.  
-   - Intel AMX Optimization – Our AMX-accelerated kernel is meticulously tuned, running several times faster than existing llama.cpp implementations. We plan to open-source this kernel after cleansing and are considering upstream contributions to llama.cpp.  
+   - Expert Offload: Unlike traditional layer-based or KVCache offloading (as seen in llama.cpp), we offload the expert computation to the CPU and MLA/KVCache to GPU, aligning perfectly with DeepSeek’s architecture for optimal efficiency.
+   - Intel AMX Optimization – Our AMX-accelerated kernel is meticulously tuned, running several times faster than existing llama.cpp implementations. We plan to open-source this kernel after cleansing and are considering upstream contributions to llama.cpp.
 
 5. Why Intel CPUs?
 Intel is currently the only CPU vendor that supports AMX-like instructions, which delivers significantly better performance compared to AVX-only alternatives.
@@ -263,7 +263,7 @@ Intel is currently the only CPU vendor that supports AMX-like instructions, whic
 * Fix the local chat only accepting a single line prompt (currently \n begins generating prompt)
 * Support for more quantization types, including the highly requested dynamic quantization from unsloth
 
-Stay tuned for more updates! 
+Stay tuned for more updates!
 ## FAQ
 ### R1 No Thinking
 Attention! If you are testing R1 and it may skip thinking. So you can add arg: `--force_think true`. The detail is in [FAQ](./FAQ.md) part <br>
