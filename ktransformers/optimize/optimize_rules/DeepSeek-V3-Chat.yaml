@@ -49,7 +49,7 @@
     kwargs:
       prefill_device: "musa"
       prefill_op: "KExpertsTorch"
-      generate_device: "musa"
+      generate_device: "cpu"
       generate_op: "KExpertsCPU"
       out_device: "musa"
   recursive: False # don't recursively inject submodules of this module
