@@ -148,7 +148,7 @@ class Config(metaclass=Singleton):
         self.amnesia = self.model.get("amnesia", False)
         self.batch_size = self.model.get("batch_size", 1)
         self.cache_lens = self.model.get("cache_lens", 4096)
-        self.device = self.model.get("device", "cuda:2")
+        self.device = self.model.get("device", "musa:2")
 
         # web config
         self.web: dict = cfg.get("web", {})

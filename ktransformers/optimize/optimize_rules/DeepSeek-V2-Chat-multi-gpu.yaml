@@ -20,8 +20,8 @@
   replace:
     class: ktransformers.operators.RoPE.YarnRotaryEmbedding
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 - match:
     name: "^model\\.layers\\.(0|[1-9]|[12][0-9])\\.(?!self_attn\\.kv_b_proj).*$"  # regular expression
@@ -40,8 +40,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear  # optimized Kernel on quantized data types
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -59,8 +59,8 @@
   replace:
     class: ktransformers.operators.experts.KDeepseekV2MoE     # mlp module with custom forward function
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 - match:
     name: "^model\\.layers\\.(0|[1-9]|[12][0-9])\\.mlp\\.experts$"
@@ -79,11 +79,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts     # custom MoE Kernel with expert paralleism
     kwargs:
-      prefill_device: "cuda:1"
+      prefill_device: "musa:1"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda:1"
+      out_device: "musa:1"
   recursive: False # don't recursively inject submodules of this module
 
 - match:
@@ -98,8 +98,8 @@
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention # optimized MLA implementation
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 - match:
     name: "^model$"
   replace:
@@ -107,7 +107,7 @@
     kwargs:
       per_layer_prefill_intput_threshold: 0 # 0 is close layer wise prefill
       transfer_map:
-        30: "cuda:1"
+        30: "musa:1"
 
 - match:
     name: "^model\\.layers\\.(0|[1-9]|[12][0-9])\\."
@@ -123,8 +123,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -133,5 +133,5 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"

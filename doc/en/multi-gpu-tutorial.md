@@ -22,7 +22,7 @@ First of all, for multi-GPU, we have to inject an new operator `KDeepseekV2Model
     class: "ktransformers.operators.models.KDeepseekV2Model"
     kwargs:
       transfer_map:
-        30: "cuda:1"
+        30: "musa:1"
 ```
 
 And we have to set the device for each module in the model.
@@ -61,7 +61,7 @@ But for two GPUs, we need to set the device for each module in the model.
     kwargs:
       generate_device: "cpu"
       generate_op:  "KExpertsCPU"
-      out_device: "cuda:1"
+      out_device: "musa:1"
   recursive: False # don't recursively inject submodules of this module
 ```
 For other modules, we can set the device in the same way.

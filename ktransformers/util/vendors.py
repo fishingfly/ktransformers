@@ -111,7 +111,7 @@ class DeviceManager:
         if isinstance(device_id, int):
             if self.gpu_vendor == GPUVendor.NVIDIA or self.gpu_vendor == GPUVendor.AMD:
                 if device_id < torch.cuda.device_count():
-                    return f"cuda:{device_id}"
+                    return f"musa:{device_id}"
             elif self.gpu_vendor == GPUVendor.MooreThreads:
                 if device_id < torch.musa.device_count():
                         return f"musa:{device_id}"
