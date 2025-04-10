@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-Description  :  
+Description  :
 Author       : Boxin Zhang, Azure-Tang
 Version      : 0.1.0
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 '''
 import torch
 from torch import nn
@@ -27,7 +27,7 @@ def get_free_ports(n: int, continue_prot: list):
     ports = []
     for _ in range(n):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind(("", 0)) 
+        s.bind(("", 0))
         port = s.getsockname()[1]
         if port in continue_prot:
             s.close()
@@ -65,7 +65,7 @@ def set_module(model, submodule_key, module):
         cur_mod[int(tokens[-1])] = module
 
 def set_param(module: nn.Module, name: str, weights: torch.Tensor):
-    
+
     param=nn.parameter.Parameter(weights, requires_grad=False)
     if isinstance(module, nn.Linear) and len(weights.shape)==1:
         param.unsqueeze_(0)
@@ -75,7 +75,7 @@ def get_device(gguf_module_key:str, device_map:dict):
     if gguf_module_key in device_map:
         return device_map[gguf_module_key]["generate_device"]
     else:
-        return "cuda"
+        return "musa"
 
 def get_all_used_cuda_device(device_map:dict):
     all_device_list = set()
@@ -95,7 +95,7 @@ def load_cur_state_dict(module: nn.Module, gguf_loader: GGUFLoader, prefix: str 
     for name, param in local_state.items():
         key = prefix + name
         translated_key = translate_name_to_gguf(key)
-        
+
         # TODO: Merge all loader.
         # I know this is ugly but lets do it for now.
         if gguf_loader.safetensor_loader is not None:
@@ -104,7 +104,7 @@ def load_cur_state_dict(module: nn.Module, gguf_loader: GGUFLoader, prefix: str 
         else:
             load_dequantized_tensor = gguf_loader.load_gguf_tensor
             tensor_file_map = gguf_loader.tensor_file_map
-        
+
         if translated_key in tensor_file_map:
             target_dtype = torch.get_default_dtype()
             device = get_device(translated_key[:translated_key.rfind(".")], gguf_loader.tensor_device_map)
@@ -116,7 +116,7 @@ def load_cur_state_dict(module: nn.Module, gguf_loader: GGUFLoader, prefix: str 
         else:
             #print(load_config.tensor_file_map.keys())
             raise Exception(f"can't find {translated_key} in GGUF file!")
-        
+
 def load_weights(module:nn.Module, gguf_loader:GGUFLoader, prefix=''):
     #print(f"recursively loading weights {prefix}")
     if not isinstance(module, base_operator.BaseInjectedModule):
@@ -135,12 +135,12 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
     batch_size, seq_length = inputs.shape
     device_map = model.gguf_loader.tensor_device_map
     torch_device = get_device('blk.0.self_attn', device_map)
-    torch_device = "cuda:0" if torch_device == "cuda" else torch_device
+    torch_device = "musa:0" if torch_device == "musa" else torch_device
     inputs = inputs.to(torch_device)
     all_cuda_device = get_all_used_cuda_device(device_map)
 
     tokens = []
-    
+
     def decode_one_tokens(cuda_graph_runner, cur_token, position_ids, cache_position, past_key_values, logits_warper, generation_config, use_cuda_graph: bool = True):
         if cuda_graph_runner is None:
             use_cuda_graph = False
@@ -168,7 +168,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
         else:
             next_token = torch.argmax(next_token_scores, dim=-1)
         return next_token
-    
+
     # TODO: use CUDA Graph for chunk prefill, may get small improvement
     def chunk_prefill(inputs, cache_position, past_key_values):
         if mode == "long_context":
@@ -178,16 +178,16 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
         if use_flashinfer_mla:
             MLAWrapperSingleton.update_buffer(past_key_values.max_pages)
             MLAWrapperSingleton.need_plan_all()
-            
+
         logits = model(
             inputs_embeds = inputs_embeds, cache_position=cache_position, past_key_values=past_key_values, return_dict=False, use_cache=True
         )[0][:,-1,:].unsqueeze(0).clone().to(torch_device)
-        
+
         return logits
-    
+
     torch.cuda.set_device(torch_device)
     with torch.no_grad():
-        
+
         stream = TextStreamer(tokenizer)
         if mode != 'long_context':
             past_key_values = StaticCache(
@@ -195,7 +195,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
             )
         else:
             past_key_values = None
-        
+
         generation_config, model_kwargs = model._prepare_generation_config(
             None, do_sample=True
             # change this to modify generate config
@@ -205,7 +205,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
             logits_warper = (
                 model._get_logits_warper(generation_config,device=inputs.device)
             )
-        except: 
+        except:
             logits_warper = (
                 model._get_logits_warper(generation_config)
             )
@@ -233,7 +233,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
             next_token = torch.argmax(next_token_scores, dim=-1)
 
         first_token_time = time.time() - start_time
-        
+
         if use_flashinfer_mla:
             MLAWrapperSingleton.reset_buffer()
 
@@ -248,9 +248,9 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
         cache_position = torch.tensor([seq_length], device=torch_device, dtype=torch.int32)
         position_ids = cache_position.unsqueeze(0)
         seq_length += 1
-        
+
         cuda_graph_runner = None
-            
+
         start_time = time.time()
         for i in range(1, max_new_tokens):
             if use_flashinfer_mla:
@@ -267,7 +267,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
             generated_ids[:, cache_position] = next_token.int()
             tokens.append(int(next_token))
             seq_length += 1
-            
+
             if next_token[0].item() == tokenizer.eos_token_id or tokenizer.decode(next_token.tolist()) == '<|im_end|>':
                 print(stream.end(), end="", flush=True)
                 break
@@ -275,7 +275,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
                 print(stream.put(next_token.item()), end="", flush=True)
             cache_position += 1
             position_ids = cache_position.unsqueeze(0)
-        
+
 
     total_time = time.time() - start_time
     tokens_generated = len(tokens)

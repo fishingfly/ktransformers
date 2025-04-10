@@ -100,7 +100,7 @@ class Config(metaclass=Singleton):
         # to make sure it consistent with previous version
         self.model_path: str = self.model_dir
         self.model_name: str = self.model.get("name", "")
-        self.model_device: str = self.model.get("device", "cuda:0")
+        self.model_device: str = self.model.get("device", "musa:0")
         self.gguf_path: Optional[str] = self.model.get("gguf_path", None)
         self.use_cuda_graph = self.model.get("use_cuda_graph", True)
         self.trust_remote_code = self.model.get("trust_remote_code", True)
@@ -108,7 +108,7 @@ class Config(metaclass=Singleton):
         self.optimize_config_path: Optional[str] = self.model.get(
             "optimize_config_path", None
         )
-        
+
         self.max_new_tokens = self.model.get("max_new_tokens", 2000)
         self.json_mode = self.model.get("json_mode", False)
         self.healing = self.model.get("healing", False)
@@ -149,7 +149,7 @@ class Config(metaclass=Singleton):
         self.amnesia = self.model.get("amnesia", False)
         self.batch_size = self.model.get("batch_size", 1)
         self.cache_lens = self.model.get("cache_lens", 4096)
-        self.device = self.model.get("device", "cuda:2")
+        self.device = self.model.get("device", "musa:2")
 
         # web config
         self.web: dict = cfg.get("web", {})
@@ -204,5 +204,5 @@ class Config(metaclass=Singleton):
         self.cpu_memory_size_GB = cfg["kvc2"]["cpu_memory_size_GB"]
         # only support 2 prefill task
         self.max_prefill_batch_size = 2
-        self.max_decode_batch_size = self.max_batch_size - self.max_prefill_batch_size 
+        self.max_decode_batch_size = self.max_batch_size - self.max_prefill_batch_size
 

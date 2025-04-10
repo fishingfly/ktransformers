@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 """
-Description  :  
+Description  :
 Author       : Jianwei Dong
 Date         : 2024-08-28 10:32:05
 Version      : 1.0.0
-LastEditors  : chenht2022 
+LastEditors  : chenht2022
 LastEditTime : 2024-08-28 10:32:05
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 import os, sys
 import time
@@ -87,7 +87,7 @@ with torch.inference_mode(mode=True):
         )
         CPUInfer.sync()
 
-        kvcaches.append((k_cache.to("cuda"), v_cache.to("cuda")))
+        kvcaches.append((k_cache.to("musa"), v_cache.to("musa")))
 
     # validation
     for i in range(validation_iter):
@@ -128,14 +128,14 @@ with torch.inference_mode(mode=True):
         # print("cpuinfer output", output)
 
         t_output = flash_attn_with_kvcache(
-            q=input.to("cuda"),
+            q=input.to("musa"),
             k_cache=k_cache,
             v_cache=v_cache,
-            cache_seqlens=cache_seqlens.to("cuda"),
+            cache_seqlens=cache_seqlens.to("musa"),
         )
         # print("torch output", t_output)
 
-        diff = torch.mean(torch.abs(output.to("cuda") - t_output)) / torch.mean(
+        diff = torch.mean(torch.abs(output.to("musa") - t_output)) / torch.mean(
             torch.abs(t_output)
         )
         print("diff = ", diff)

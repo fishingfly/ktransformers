@@ -1,5 +1,5 @@
 '''
-Description  :  
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
 '''
@@ -66,15 +66,15 @@ class StaticCache(transformers.StaticCache):
                     target_device = device[f"blk.{idx}.self_attn"]["generate_device"]
                 else:
                     target_device = device
-                
+
                 if target_device not in self.page_table_map:
                     page_table = torch.zeros((max_batch_size, self.max_pages), dtype=torch.int32, device=target_device)
                     for seq_id in range(max_batch_size):
                         page_table[seq_id, :] = torch.arange(seq_id * self.max_pages, seq_id * self.max_pages + self.max_pages, dtype=torch.int32, device=target_device)
                     self.page_table_map[target_device] = page_table
-                    
+
                 self.page_table_list.append(self.page_table_map[target_device])
-                    
+
             self.is_MLA = True
             self.is_page = True
         else:
@@ -91,7 +91,7 @@ class StaticCache(transformers.StaticCache):
                 target_device = device[f"blk.{idx}.self_attn"]["generate_device"]
             else:
                 target_device = device
-            
+
             if self.is_MLA:
                 new_layer_key_cache = torch.zeros(latent_shape, dtype=self.dtype, device=target_device)
                 new_layer_value_cache = None
@@ -101,7 +101,7 @@ class StaticCache(transformers.StaticCache):
                 new_layer_value_cache = torch.zeros(value_shape, dtype=self.dtype, device=target_device)
                 torch._dynamo.mark_static_address(new_layer_key_cache)
                 torch._dynamo.mark_static_address(new_layer_value_cache)
-                
+
             self.key_cache.append(new_layer_key_cache)
             self.value_cache.append(new_layer_value_cache)
             self.past_tokens.append(0)
@@ -154,7 +154,7 @@ class StaticCache(transformers.StaticCache):
         # limit the check to the first batch member and head dimension.
         # TODO: deprecate this function in favor of `cache_position`
         return self.past_tokens[layer_idx]
-    
+
     def change_seq_length(self, bias: Optional[int] = 0) -> int:
         """Returns the sequence length of the cached states that were seen by the model."""
         # Occupied cache == any slot in the 3rd dim (sequence length) holds a non-zero value. To save on compute, let's
@@ -186,7 +186,7 @@ class StaticCache(transformers.StaticCache):
                 self.key_cache[layer_idx][..., start_pos:, :].zero_()
                 self.value_cache[layer_idx][..., start_pos:, :].zero_()
             self.past_tokens[layer_idx] = start_pos
-    
+
     def get_max_cache_shape(self) -> Tuple[int, int, int, int]:
         """Returns the maximum shape of the cache."""
         return self.max_cache_len
@@ -197,8 +197,8 @@ class KDeepSeekV3Cache(nn.Module):
         config: PretrainedConfig,
         page_size: int = 256,
         dtype=torch.bfloat16,
-        device=torch.device("cuda:0"),
-        
+        device=torch.device("musa:0"),
+
     ):
         super().__init__()
         self.config = config
@@ -208,13 +208,13 @@ class KDeepSeekV3Cache(nn.Module):
         self.page_size = page_size
         self.k_caches = []
         self.v_caches = []
-        
 
-    def load(self, inference_context: sched_ext.InferenceContext): 
-        
+
+    def load(self, inference_context: sched_ext.InferenceContext):
+
         for i in range(self.config.num_hidden_layers):
             self.k_caches.append(
-                inference_context.k_cache[0][i] 
+                inference_context.k_cache[0][i]
             )
         self.max_cache_len = self.k_caches[0].shape[0]*self.k_caches[0].shape[1]
 
@@ -253,10 +253,10 @@ class KDeepSeekV3Cache(nn.Module):
         k_out[page_idx, page_offset, :, self.kv_lora_rank:] = value_states.reshape(-1, *value_states.shape[2:])
         return k_out
 
-        
+
     def get_page_table(self, cache_position: torch.Tensor, q_indptr: torch.Tensor, kv_indptr: torch.Tensor, kv_indices: torch.Tensor, bsz_tensors: torch.tensor):
-        page_offset = cache_position % self.page_size  
-        page_idx_local = cache_position // self.page_size  
+        page_offset = cache_position % self.page_size
+        page_idx_local = cache_position // self.page_size
         query_ids = torch.zeros_like(cache_position)
         for i in range(len(q_indptr) - 1):
             start_idx = q_indptr[i]
@@ -269,6 +269,6 @@ class KDeepSeekV3Cache(nn.Module):
             start_block = kv_indptr[query_id]
             if local_block < kv_indptr[query_id + 1] - kv_indptr[query_id]:
                 page_idx[i] = kv_indices[start_block + local_block]
-        
+
         return page_idx, page_offset
-    
+

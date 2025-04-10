@@ -1,26 +1,26 @@
 #!/usr/bin/env python
 # coding=utf-8
 '''
-Description  :  
+Description  :
 Author       : Azure-Tang, Boxin Zhang
 Date         : 2024-07-25 11:25:24
 Version      : 0.1.0
-LastEditors  : Azure 
+LastEditors  : Azure
 LastEditTime : 2024-08-29 09:11:16
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 '''
 
 
 import ctypes
 import torch
 from torch import Tensor, nn
-import KTransformersOps 
+import KTransformersOps
 import vLLMMarlin
 from ktransformers.util.custom_gguf import GGUFLoader
 from ktransformers.util.utils import InferenceState
 from ktransformers.ktransformers_ext.operators.custom_marlin.quantize.utils.marlin_utils import (
     MarlinWorkspace,
-    marlin_quantize, 
+    marlin_quantize,
     GPTQ_MARLIN_MIN_THREAD_N,
     GPTQ_MARLIN_MIN_THREAD_K,
     GPTQ_MARLIN_MAX_PARALLEL,
@@ -48,7 +48,7 @@ class KLinearBase(ABC):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         **kwargs,
     ):
         # super().__init__(key, gguf_loader, config, orig_module, device, **kwargs)
@@ -90,7 +90,7 @@ class KLinearBase(ABC):
                     weight_scale_inv = self.gguf_loader.safetensor_loader.load_tensor(key+'.weight_scale_inv')
                     return nn.Parameter(tensor), nn.Parameter(weight_scale_inv)
                 return nn.Parameter(tensor)
-                
+
             elif key + ".weight" in self.gguf_loader.tensor_file_map:
                 if key + ".bias" in self.gguf_loader.tensor_file_map:
                     tensors = self.load_multi(key, ["weight", "bias"], device=device)
@@ -114,7 +114,7 @@ class KLinearBase(ABC):
         return tensors
 
     @abstractmethod
-    def load(self, w: dict | nn.Parameter | tuple | None = None, device: str|None = "cuda"):
+    def load(self, w: dict | nn.Parameter | tuple | None = None, device: str|None = "musa"):
         pass
 
     @abstractmethod
@@ -129,7 +129,7 @@ class KLinearTorch(KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         **kwargs,
     ):
         super().__init__(key, gguf_loader, config, orig_module, device, **kwargs)
@@ -154,11 +154,11 @@ class KLinearTorch(KLinearBase):
         if device is None: device = self.device
         if w is None: w = self.load_weight(device=device)
         # else: self.out_features = w.shape[0], self.in_features = w.shape[1]
-        
+
         if isinstance(w, nn.Parameter):
             try:
                 self.weight = w.to(dtype=self.dtype).view(self.out_features, self.in_features).T
-            except: 
+            except:
                 self.weight = w.to(dtype=self.dtype).T
             self.has_bias = False
         elif isinstance(w, tuple):
@@ -189,7 +189,7 @@ class KLinearQ8(KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         **kwargs,
     ):
         super().__init__(key, gguf_loader, config, orig_module, device, **kwargs)
@@ -200,33 +200,33 @@ class KLinearQ8(KLinearBase):
         self.weight_zero_point = None
         self.bias = None
         self.loaded = False
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         orig_dtype = x.dtype
         out_device = x.device
-        
+
         x = x.to(device=self.device, dtype=self.compute_dtype)
-        
+
         # 使用原始权重做矩阵乘法，模拟原始行为
 
         # 反量化权重进行矩阵乘法
         weight_dequant = self._dequantize_weight(self.weight, self.weight_scale, bits=8)
         out = x @ weight_dequant.T
-        
+
         if self.has_bias:
             out = out + self.bias
-        
+
         return out.to(dtype=orig_dtype, device=out_device)
-    
+
     def _dequantize_weight(self, q_matrix, scales, bits=8):
         """
         Dequantize a low-precision matrix back to floating-point
-        
+
         Args:
             q_matrix (torch.Tensor): Quantized int matrix
             scales (torch.Tensor): Scale factors for each column
             bits (int): Quantization bits used (8 or 4)
-        
+
         Returns:
             torch.Tensor: Dequantized floating-point matrix
         """
@@ -235,13 +235,13 @@ class KLinearQ8(KLinearBase):
             q_matrix = torch.tensor(q_matrix, dtype=torch.int8)
         if not isinstance(scales, torch.Tensor):
             scales = torch.tensor(scales, dtype=torch.float32)
-        
+
         # Convert to correct dtype if needed
         if q_matrix.dtype != torch.int8:
             q_matrix = q_matrix.to(torch.int8)
         if scales.dtype != torch.float32:
             scales = scales.to(torch.float32)
-        
+
         # For Q4, ensure the values stay within 4-bit range
         if bits == 4:
             q_matrix = torch.clamp(q_matrix, -7, 7)
@@ -250,31 +250,31 @@ class KLinearQ8(KLinearBase):
         scales_broadcast = scales.view(1, cols)
         # Apply dequantization to all columns at once using matrix multiplication
         dequant_matrix = dequant_matrix * scales_broadcast
-        
+
         return dequant_matrix
 
-    
+
     def _quantize_weight(self, matrix, bits=8):
         """
         Quantize a floating-point matrix to lower precision (Q8 or Q4)
-        
+
         Args:
             matrix (torch.Tensor): Input matrix in floating-point format
             bits (int): Quantization bits, either 8 or 4
-        
+
         Returns:
             tuple: (quantized int matrix, scale factors for each column)
         """
         if not isinstance(matrix, torch.Tensor):
             matrix = torch.tensor(matrix, dtype=torch.float32)
-        
+
         # Convert to float32 if needed
         if matrix.dtype != torch.float32:
             matrix = matrix.to(torch.float32)
-        
+
         # Get matrix shape
         rows, cols = matrix.shape
-        
+
         # Determine quantization parameters based on bits
         if bits == 8:
             max_int = 127
@@ -284,36 +284,36 @@ class KLinearQ8(KLinearBase):
             qtype = torch.int8  # We'll still use int8 storage but limit to 4-bit range, wait for native support
         else:
             raise ValueError("Quantization bits must be either 8 or 4")
-       
+
         scales = torch.zeros(cols, dtype=torch.float32, device=matrix.device)
-        
+
         # Calculate max absolute value for each column
         max_abs_vals, _ = torch.max(torch.abs(matrix), dim=0)
-        
+
         # Handle zero columns (avoid division by zero)
         zero_cols = max_abs_vals == 0
         max_abs_vals[zero_cols] = 1.0
-        
+
         # Calculate scale factors for all columns at once
         scales = max_abs_vals / max_int
-        
+
         # Prepare the scales for broadcasting [1, cols]
         scales_broadcast = scales.view(1, cols)
-        
+
         # Apply quantization to the entire matrix at once
         q_matrix = torch.round(matrix / scales_broadcast).to(qtype)
-        
+
         # For Q4, clamp values to ensure they stay within 4-bit range
         if bits == 4:
             q_matrix = torch.clamp(q_matrix, -max_int, max_int)
-        
+
         return q_matrix, scales
-    
+
     def load(self, w: Union[Dict, nn.Parameter, Tuple, None] = None, device: Optional[str] = None):
         if self.loaded: return
-        if device is None: device = self.device 
+        if device is None: device = self.device
         if w is None: w = self.load_weight(device=device)
-        
+
         if isinstance(w, nn.Parameter):
             try:
                 weight = w.to(dtype=self.compute_dtype).view(self.out_features, self.in_features)
@@ -329,26 +329,26 @@ class KLinearQ8(KLinearBase):
             self.has_bias = True
         else:
             raise ValueError("Invalid weight type")
-        
+
         self.weight, self.weight_scale = self._quantize_weight(weight, bits=8)
-        
+
         self.weight = self.weight.to(device)
         self.weight_scale = self.weight_scale.to(device)
-        
+
         if self.has_bias:
             self.bias = self.bias.to(device)
-            
+
         self.loaded = True
-    
+
     def unload(self):
         self.weight = None
         self.weight_scale = None
         self.weight_zero_point = None
         self._orig_weight = None
-        
+
         if self.has_bias:
             self.bias = None
-            
+
         self.loaded = False
 
 
@@ -364,7 +364,7 @@ class KLinearFP8(KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         block_size: int = 128,
         **kwargs,
     ):
@@ -372,18 +372,18 @@ class KLinearFP8(KLinearBase):
         self.has_bias = False
         self.dtype = torch.get_default_dtype()
         self.block_size = block_size
-    
+
     def forward(self, x: torch.Tensor, bsz_tensor: torch.Tensor) -> torch.Tensor:
         x = x.to(self.device)
-        orig_dtype = x.dtype        
+        orig_dtype = x.dtype
         x_quantized, scale_x = act_quant(x, self.block_size)
         y = fp8_gemm(x_quantized, scale_x, self.weight, self.weight_scale_inv)
         return y.to(dtype=orig_dtype)
-    
+
     def load(self, w: dict | nn.Parameter | tuple | None = None, device: str|None = None):
         if device is None: device = self.device
-        if w is None: 
-            w = self.load_weight(device=device) 
+        if w is None:
+            w = self.load_weight(device=device)
         ### TODO fit weight_inv format
         if isinstance(w, tuple):
             self.weight = w[0].to(device)
@@ -394,7 +394,7 @@ class KLinearFP8(KLinearBase):
         self.weight = self.weight.to(device)
         if self.has_bias:
             self.bias = self.bias.to(device)
-        
+
     def unload(self):
         if self.weight is not None:
             self.weight = None
@@ -415,7 +415,7 @@ class VLinearMarlin(KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         num_bits: int = 4,  # 4-bit/8-bit is supported
         group_size: int = 64,  # -1, 32, 64, 128
         act_order: bool = False,
@@ -437,7 +437,7 @@ class VLinearMarlin(KLinearBase):
             self.in_features = (self.in_features+GPTQ_MARLIN_MIN_THREAD_K-1)//GPTQ_MARLIN_MIN_THREAD_K*GPTQ_MARLIN_MIN_THREAD_K
             self.out_features = (self.out_features+GPTQ_MARLIN_MIN_THREAD_N-1)//GPTQ_MARLIN_MIN_THREAD_N*GPTQ_MARLIN_MIN_THREAD_N
             #print(f"After padding: in_features={in_features}, out_features={out_features}")
-        
+
         self.k = self.in_features
         self.n = self.out_features
 
@@ -445,10 +445,10 @@ class VLinearMarlin(KLinearBase):
         if self.loaded: return
         if device is None: device = self.device
         assert device.lower() != "cpu", "Marlin quantized linear only supports GPU device"
-        
+
         #if self.in_features * self.out_features:
-        if w is None: 
-            w = self.load_weight(device=device) 
+        if w is None:
+            w = self.load_weight(device=device)
 
         if isinstance(w, nn.Parameter):
             # pad weight
@@ -465,7 +465,7 @@ class VLinearMarlin(KLinearBase):
         weight = weight.to(device)
         if self.has_bias:
             self.bias = self.bias.to(device)
-            
+
         if self.padding:
             padded_weight = torch.zeros(self.in_features, self.out_features, device=self.device)
             padded_weight[:self.orin_in_features, :self.orin_out_features] = weight
@@ -544,7 +544,7 @@ class VLinearMarlin(KLinearBase):
         self.marlin_s = None
         self.g_idx = None
         self.sort_indices = None
-        self.workspace = None  
+        self.workspace = None
 
 class KLinearMarlin(KLinearBase):
     marlin_q_w: torch.Tensor
@@ -558,7 +558,7 @@ class KLinearMarlin(KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module = None,
-        device: str = "cuda",
+        device: str = "musa",
         num_bits: int = 4,  # 4-bit/8-bit is supported
         group_size: int = 64,  # -1, 32, 64, 128
         act_order: bool = False,
@@ -580,7 +580,7 @@ class KLinearMarlin(KLinearBase):
             self.in_features = (self.in_features+GPTQ_MARLIN_MIN_THREAD_K-1)//GPTQ_MARLIN_MIN_THREAD_K*GPTQ_MARLIN_MIN_THREAD_K
             self.out_features = (self.out_features+GPTQ_MARLIN_MIN_THREAD_N-1)//GPTQ_MARLIN_MIN_THREAD_N*GPTQ_MARLIN_MIN_THREAD_N
             #print(f"After padding: in_features={in_features}, out_features={out_features}")
-        
+
         self.k = self.in_features
         self.n = self.out_features
 
@@ -588,10 +588,10 @@ class KLinearMarlin(KLinearBase):
         if self.loaded: return
         if device is None: device = self.device
         assert device.lower() != "cpu", "Marlin quantized linear only supports GPU device"
-        
+
         #if self.in_features * self.out_features:
-        if w is None: 
-            w = self.load_weight(device=device) 
+        if w is None:
+            w = self.load_weight(device=device)
 
         if isinstance(w, nn.Parameter):
             # pad weight
@@ -608,7 +608,7 @@ class KLinearMarlin(KLinearBase):
         weight = weight.to(device)
         if self.has_bias:
             self.bias = self.bias.to(device)
-            
+
         if self.padding:
             padded_weight = torch.zeros(self.in_features, self.out_features, device=self.device)
             padded_weight[:self.orin_in_features, :self.orin_out_features] = weight
@@ -683,7 +683,7 @@ class KLinearCPUInfer(KLinearBase):
         config: PretrainedConfig,
         orig_module: nn.Module = None,
         device: str = "cpu",
-        out_device: str = "cuda", # this device mean which device the output should on. TODO: support cpu.
+        out_device: str = "musa", # this device mean which device the output should on. TODO: support cpu.
         stride = 16,
         group_max_len = 1024,
         **kwargs,
@@ -708,8 +708,8 @@ class KLinearCPUInfer(KLinearBase):
             KLinearCPUInfer.CPU_INFER.submit_with_cuda_stream(
                 torch.cuda.current_stream().cuda_stream,
                 self.linear.forward(
-                    qlen, 
-                    self.input_tensor_cpu.data_ptr(), 
+                    qlen,
+                    self.input_tensor_cpu.data_ptr(),
                     self.output_cpu.data_ptr()
                 )
             )
@@ -727,8 +727,8 @@ class KLinearCPUInfer(KLinearBase):
             output = torch.empty(output_shape, device=x.device, dtype=x.dtype)
             KLinearCPUInfer.CPU_INFER.submit(
                 self.linear.forward(
-                    qlen, 
-                    x.data_ptr(), 
+                    qlen,
+                    x.data_ptr(),
                     output.data_ptr()
                 )
             )
@@ -745,13 +745,13 @@ class KLinearCPUInfer(KLinearBase):
         if self.bias is not None:
             self.has_bias = True
             self.bias = self.bias.to(device)
-            
+
         weight_ptr = ctypes.addressof(
             ctypes.cast(self.weight.ctypes.data, ctypes.POINTER(ctypes.c_uint64)).contents
         )
         config = cpuinfer_ext.linear.LinearConfig(self.in_features, self.out_features, self.stride, self.group_max_len, weight_ptr, self.weight_type, 30)
         self.linear = cpuinfer_ext.linear.Linear(config)
-        
+
         if warmup:
             KLinearCPUInfer.CPU_INFER.submit(self.linear.warm_up())
             KLinearCPUInfer.CPU_INFER.sync()
@@ -776,7 +776,7 @@ class KLinearCPUInfer(KLinearBase):
         if self.w is not None:
             self.w = None
         if self.has_bias:
-            self.bias = None       
+            self.bias = None
 
 LINEAR_MAP = {
     "KLinearMarlin": KLinearMarlin,
@@ -794,9 +794,9 @@ class KTransformersLinear(BaseInjectedModule, KLinearBase):
         gguf_loader: GGUFLoader,
         config: PretrainedConfig,
         orig_module: nn.Module,
-        generate_device: str = "cuda",
+        generate_device: str = "musa",
         generate_op: str| None = "KLinearMarlin",
-        prefill_device: str = "cuda",
+        prefill_device: str = "musa",
         prefill_op: str| None = "KLinearTorch",
         **kwargs,
     ):
@@ -855,7 +855,7 @@ class KTransformersLinear(BaseInjectedModule, KLinearBase):
         self.device = self.generate_linear.device
 
     def set_inference_mode(self, mode: InferenceState):
-        if not mode: 
+        if not mode:
             mode = InferenceState.GENERATE
         if mode == InferenceState.GENERATE:
             self.load(mode=InferenceState.GENERATE)

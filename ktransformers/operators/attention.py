@@ -52,8 +52,8 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  chunck_size: int = 1000,
                  absorb_for_prefill: bool = False,
                  **kwargs):
@@ -641,8 +641,8 @@ class KLlamaAttention(BaseInjectedModule):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  **kwargs):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, prefill_device, generate_device, **kwargs)
         self.orig_module.__init__(orig_module.config,
@@ -768,8 +768,8 @@ class flashinfer_attn(BaseInjectedModule, DeepseekV2Attention):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  chunck_size: int = 1000,
                  **kwargs):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, prefill_device, **kwargs)
@@ -783,17 +783,17 @@ class flashinfer_attn(BaseInjectedModule, DeepseekV2Attention):
             kv_b_proj = self.kv_b_proj.weight.view(self.num_heads, -1, self.kv_lora_rank)
             q_absorb = kv_b_proj[:, :self.qk_nope_head_dim, :].reshape(-1, self.kv_lora_rank)
             out_absorb = kv_b_proj[:, self.qk_nope_head_dim:, :].reshape(-1, self.kv_lora_rank)
-            self.q_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.qk_nope_head_dim, 
+            self.q_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.qk_nope_head_dim,
                                       bias=False, dtype=q_absorb.dtype, device=q_absorb.device)
             self.q_absorb.weight.data = q_absorb
-            self.out_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.v_head_dim, 
+            self.out_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.v_head_dim,
                                         bias=False, dtype=out_absorb.dtype, device=out_absorb.device)
             self.out_absorb.weight.data = out_absorb
             #del self.orig_module.kv_b_proj
         q_absorb = self.q_absorb.weight.view(self.num_heads, self.qk_nope_head_dim, self.kv_lora_rank)
         out_absorb = self.out_absorb.weight.view(self.num_heads, self.v_head_dim, self.kv_lora_rank)
         return q_absorb, out_absorb
-    
+
 
 
     def forward(self,
@@ -824,18 +824,18 @@ class flashinfer_attn(BaseInjectedModule, DeepseekV2Attention):
         compressed_kv = self.kv_a_layernorm(compressed_kv, num_tokens_tensors)
         k_pe = k_pe.view(q_len, 1, self.qk_rope_head_dim)
         compressed_kv = compressed_kv.view(q_len, 1, self.kv_lora_rank)
-        
+
         cos, sin = self.rotary_emb(q_pe, position_ids.unsqueeze(0))
         q_pe, k_pe = apply_rotary_pos_emb(q_pe.unsqueeze(0), k_pe.unsqueeze(0), cos, sin, unsqueeze_dim=2)
         q_pe = q_pe.squeeze(0)
         if kv_cache is not None:
-            
+
             # page_idx, page_offset = kv_cache.get_page_table(position_ids, q_indptr, kv_indptr, kv_indices)
             cache_kwargs = {"sin": sin, "cos": cos, "page_idx": page_idx, "page_offset": page_offset}  # Specific to RoPE models
             compressed_kv_with_k_pe = kv_cache.update(compressed_kv.unsqueeze(0), k_pe, self.layer_idx, page_idx, page_offset, cache_kwargs)
             compressed_kv = compressed_kv_with_k_pe [:, :, :, :self.kv_lora_rank].view(-1, kv_cache.page_size, self.kv_lora_rank)
             k_pe = compressed_kv_with_k_pe [:, :, :, self.kv_lora_rank:].view(-1, kv_cache.page_size, self.qk_rope_head_dim)
-            
+
         q_absorb, out_absorb = self.get_absorbed()
         q_nope = q_nope.transpose(0, 1) # q_len is 1, no GPU overhead, same below
         q_nope = torch.matmul(q_nope, q_absorb) # batched MM

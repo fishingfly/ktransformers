@@ -61,7 +61,7 @@ def _split_tensor_dict(
         if isinstance(value, torch.Tensor):
             # Note: we cannot use `value.device` here,
             # because it contains not only the device type but also the device
-            # index (e.g. "cuda:0"). We only need the device type.
+            # index (e.g. "musa:0"). We only need the device type.
             # receiving side will set the device index.
             device = value.device.type
             metadata_list.append(
@@ -207,7 +207,7 @@ class GroupCoordinator:
         assert current_platform.is_cuda_alike()
 
         if current_platform.is_cuda_alike():
-            self.device = torch.device(f"cuda:{local_rank}")
+            self.device = torch.device(f"musa:{local_rank}")
         else:
             self.device = torch.device("cpu")
 

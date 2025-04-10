@@ -57,7 +57,7 @@ class CustomAllreduce:
             group: the process group to work on. If None, it will use the
                 default process group.
             device: the device to bind the CustomAllreduce to. If None,
-                it will be bind to f"cuda:{local_rank}".
+                it will be bind to f"musa:{local_rank}".
         It is the caller's responsibility to make sure each communicator
         is bind to a unique device, and all communicators in this group
         are in the same node.
@@ -101,7 +101,7 @@ class CustomAllreduce:
             return
 
         if isinstance(device, int):
-            device = torch.device(f"cuda:{device}")
+            device = torch.device(f"musa:{device}")
         elif isinstance(device, str):
             device = torch.device(device)
         # now `device` is a `torch.device` object

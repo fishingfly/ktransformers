@@ -15,8 +15,8 @@
   replace:
     class: ktransformers.operators.RoPE.YarnRotaryEmbeddingV3
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
 
 # GPU 1: layers 15–29
 - match:
@@ -25,8 +25,8 @@
   replace:
     class: ktransformers.operators.RoPE.YarnRotaryEmbeddingV3
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 # GPU 2: layers 30–44
 - match:
@@ -35,8 +35,8 @@
   replace:
     class: ktransformers.operators.RoPE.YarnRotaryEmbeddingV3
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
 
 # GPU 3: layers 45–60
 - match:
@@ -45,8 +45,8 @@
   replace:
     class: ktransformers.operators.RoPE.YarnRotaryEmbeddingV3
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
 
 # === Linear Layers Replacement (excluding self_attn.kv_b_proj) ===
 
@@ -57,8 +57,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -69,8 +69,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -81,8 +81,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -93,8 +93,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -107,8 +107,8 @@
   replace:
     class: ktransformers.operators.experts.KDeepseekV3MoE
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
 
 # GPU 1: layers 15–29
 - match:
@@ -117,8 +117,8 @@
   replace:
     class: ktransformers.operators.experts.KDeepseekV3MoE
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 # GPU 2: layers 30–44
 - match:
@@ -127,8 +127,8 @@
   replace:
     class: ktransformers.operators.experts.KDeepseekV3MoE
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
 
 # GPU 3: layers 45–60
 - match:
@@ -137,8 +137,8 @@
   replace:
     class: ktransformers.operators.experts.KDeepseekV3MoE
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
 
 # === MLP Gate Replacement ===
 
@@ -149,8 +149,8 @@
   replace:
     class: ktransformers.operators.gate.KMoEGate
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
 
 # GPU 1: layers 15–29
 - match:
@@ -159,8 +159,8 @@
   replace:
     class: ktransformers.operators.gate.KMoEGate
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 # GPU 2: layers 30–44
 - match:
@@ -169,8 +169,8 @@
   replace:
     class: ktransformers.operators.gate.KMoEGate
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
 
 # GPU 3: layers 45–60
 - match:
@@ -179,8 +179,8 @@
   replace:
     class: ktransformers.operators.gate.KMoEGate
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
 
 # === MLP Experts Replacement ===
 # replace with marlin expert. Open and modify layer-num as needed.
@@ -194,7 +194,7 @@
 #   replace:
 #     class: ktransformers.operators.experts.KTransformersExperts
 #     kwargs:
-#       generate_device: "cuda:0"
+#       generate_device: "musa:0"
 #       generate_op:  "KExpertsMarlin"
 #   recursive: False
 
@@ -204,7 +204,7 @@
 #   replace:
 #     class: ktransformers.operators.experts.KTransformersExperts
 #     kwargs:
-#       generate_device: "cuda:1"
+#       generate_device: "musa:1"
 #       generate_op:  "KExpertsMarlin"
 #   recursive: False
 
@@ -214,7 +214,7 @@
 #   replace:
 #     class: ktransformers.operators.experts.KTransformersExperts
 #     kwargs:
-#       generate_device: "cuda:2"
+#       generate_device: "musa:2"
 #       generate_op:  "KExpertsMarlin"
 #   recursive: False
 
@@ -224,7 +224,7 @@
 #   replace:
 #     class: ktransformers.operators.experts.KTransformersExperts
 #     kwargs:
-#       generate_device: "cuda:3"
+#       generate_device: "musa:3"
 #       generate_op:  "KExpertsMarlin"
 #   recursive: False
 
@@ -237,11 +237,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
-      prefill_device: "cuda:0"
+      prefill_device: "musa:0"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op: "KExpertsCPU"
-      out_device: "cuda:0"
+      out_device: "musa:0"
   recursive: False
 
 # GPU 1: layers 15–29
@@ -250,11 +250,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
-      prefill_device: "cuda:1"
+      prefill_device: "musa:1"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op: "KExpertsCPU"
-      out_device: "cuda:1"
+      out_device: "musa:1"
   recursive: False
 
 # GPU 2: layers 30–44
@@ -263,11 +263,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
-      prefill_device: "cuda:2"
+      prefill_device: "musa:2"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op: "KExpertsCPU"
-      out_device: "cuda:2"
+      out_device: "musa:2"
   recursive: False
 
 # GPU 3: layers 45–60
@@ -276,11 +276,11 @@
   replace:
     class: ktransformers.operators.experts.KTransformersExperts
     kwargs:
-      prefill_device: "cuda:3"
+      prefill_device: "musa:3"
       prefill_op: "KExpertsTorch"
       generate_device: "cpu"
       generate_op: "KExpertsCPU"
-      out_device: "cuda:3"
+      out_device: "musa:3"
   recursive: False
 
 # === Self-Attention Replacement ===
@@ -291,8 +291,8 @@
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
       absorb_for_prefill: False
 
 # GPU 1: layers 15–29
@@ -301,8 +301,8 @@
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
       absorb_for_prefill: False
 
 # GPU 2: layers 30–44
@@ -311,8 +311,8 @@
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
       absorb_for_prefill: False
 
 # GPU 3: layers 45–60
@@ -321,8 +321,8 @@
   replace:
     class: ktransformers.operators.attention.KDeepseekV2Attention
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
       absorb_for_prefill: False
 
 # === Overall Model Replacement with Transfer Map ===
@@ -334,9 +334,9 @@
     kwargs:
       per_layer_prefill_intput_threshold: 0 # 0 means close layer‐wise prefill
       transfer_map:
-        15: "cuda:1" # Layers 15+ on GPU 1
-        30: "cuda:2" # Layers 30+ on GPU 2
-        45: "cuda:3" # Layers 45+ on GPU 3
+        15: "musa:1" # Layers 15+ on GPU 1
+        30: "musa:2" # Layers 30+ on GPU 2
+        45: "musa:3" # Layers 45+ on GPU 3
 
 # === Default Catch-All for Other Modules ===
 
@@ -346,8 +346,8 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:0"
-      prefill_device: "cuda:0"
+      generate_device: "musa:0"
+      prefill_device: "musa:0"
 
 # GPU 1: layers 15–29
 - match:
@@ -355,8 +355,8 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:1"
-      prefill_device: "cuda:1"
+      generate_device: "musa:1"
+      prefill_device: "musa:1"
 
 # GPU 2: layers 30–44
 - match:
@@ -364,8 +364,8 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:2"
-      prefill_device: "cuda:2"
+      generate_device: "musa:2"
+      prefill_device: "musa:2"
 
 - match:
     name: "^lm_head"
@@ -373,8 +373,8 @@
   replace:
     class: ktransformers.operators.linear.KTransformersLinear
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"
       generate_op: "KLinearMarlin"
       prefill_op: "KLinearTorch"
 
@@ -384,5 +384,5 @@
   replace:
     class: "default"
     kwargs:
-      generate_device: "cuda:3"
-      prefill_device: "cuda:3"
+      generate_device: "musa:3"
+      prefill_device: "musa:3"

@@ -20,7 +20,7 @@ setup_seed(20241223)
 torch.set_grad_enabled(False)
 torch.set_default_dtype(torch.bfloat16)
 global_dtype=torch.bfloat16
-global_device=torch.device("cuda",0)
+global_device=torch.device("musa",0)
 global_num_cases:int=int(50)
 torch.cuda.set_device(0)
 torch.backends.cudnn.enabled =True
@@ -49,7 +49,7 @@ def timing(func, iters, epochs=100):
 	#warmup
 	for idx in range(iters):
 		func(idx)
-		
+
 	torch.cuda.synchronize()
 	cuda_graph = torch.cuda.CUDAGraph()
 	with torch.cuda.graph(cuda_graph):
@@ -70,7 +70,7 @@ def timing(func, iters, epochs=100):
 	end_event.record()
 	torch.cuda.synchronize()
 	elapsed_time_ms0 = start_event.elapsed_time(end_event)
-	
+
 	start_event = torch.cuda.Event(enable_timing=True)
 	end_event = torch.cuda.Event(enable_timing=True)
 	torch.cuda.synchronize()
@@ -81,7 +81,7 @@ def timing(func, iters, epochs=100):
 	end_event.record()
 	torch.cuda.synchronize()
 	elapsed_time_ms = start_event.elapsed_time(end_event) - elapsed_time_ms0
-	
+
 	#print(elapsed_time_ms0, elapsed_time_ms)
 	return elapsed_time_ms/iters/epochs
 
@@ -96,7 +96,7 @@ class LinearMarlin(nn.Linear):
 		in_features,
 		out_features,
 		bias = False,
-		device: str = "cuda",
+		device: str = "musa",
 		num_bits: int = 4,  # 4-bit/8-bit is supported
 		group_size: int = 64,  # -1, 32, 64, 128
 		act_order: bool = False,
@@ -114,7 +114,7 @@ class LinearMarlin(nn.Linear):
 			in_features = (in_features+GPTQ_MARLIN_MIN_THREAD_K-1)//GPTQ_MARLIN_MIN_THREAD_K*GPTQ_MARLIN_MIN_THREAD_K
 			out_features = (out_features+GPTQ_MARLIN_MIN_THREAD_N-1)//GPTQ_MARLIN_MIN_THREAD_N*GPTQ_MARLIN_MIN_THREAD_N
 			#print(f"After padding: in_features={in_features}, out_features={out_features}")
-			
+
 
 		super().__init__(in_features, out_features, bias, device)
 		self.has_bias = bias
@@ -123,13 +123,13 @@ class LinearMarlin(nn.Linear):
 		self.group_size = group_size
 		self.act_order = act_order
 		# TODO: optimize every shape GEMM
-		
+
 		blocks_k, blocks_n = in_features//128, out_features//128
 
 		self.sms = sms
 
 		self.is_k_full = is_k_full
-		
+
 		self.weight.requires_grad = False
 		self.weight.t_()
 		# Pack Marlin linear
@@ -177,7 +177,7 @@ class LinearMarlin(nn.Linear):
 			x = padding_input
 		marlin_s = self.marlin_s.to(x.dtype)
 		#print(self.sms * ((orig_shape[0]+63)//64))
-		
+
 		sms = self.sms
 
 		x = vLLMMarlin.gptq_marlin_gemm(
@@ -226,7 +226,7 @@ def benchLinearMarlin(input_dim, output_dim):#, out_file
 			min_cases = max(global_num_cases, (2*L2_size) // (data_size+input_size))
 			cases = int(min(min_cases, (usable_mem * 0.8) // (data_size+input_size)))
 			#print(usable_mem, data_size, input_size, cases)
-				
+
 			bsz_tensor = torch.tensor([batch_size], device=global_device, dtype=torch.int32)
 
 			if cases == 0:
@@ -236,10 +236,10 @@ def benchLinearMarlin(input_dim, output_dim):#, out_file
 			for _ in range(cases):
 				modules.append(LinearMarlin(input_dim, cur_output_dim, sms=56, non_equal_division=False).to(device=global_device).eval())
 				inputs.append(torch.randn(batch_size, 1, input_dim, device=global_device))
-				
+
 			def forward(case_id):
 				modules[case_id](inputs[case_id], bsz_tensor)
-				
+
 			used_time = timing(forward, iters=cases)
 			bandwidth = (data_size+input_size+output_size)/used_time/1e6
 			flops = 2*batch_size*input_dim*cur_output_dim
@@ -248,7 +248,7 @@ def benchLinearMarlin(input_dim, output_dim):#, out_file
 			row = [f"{batch_size}", f"{tp}", f"{used_time}", f"{bandwidth}", f"{tflops}", f"{cases}", modules[0].padding, cur_sms]
 			rows.append(row)
 			print(f"{batch_size}", f"{tp}", f"{used_time}", f"{bandwidth}", f"{tflops}", f"{cases}", modules[0].padding, cur_sms)
-	
+
 	"""
 	with open(out_file, 'w', newline='') as csvfile:
 		csvwriter = csv.writer(csvfile)
@@ -256,7 +256,7 @@ def benchLinearMarlin(input_dim, output_dim):#, out_file
 		for row in rows:
 			csvwriter.writerow(row)
 	"""
-	
+
 	"""
 	markdown_table = " | ".join(headers) + "\n"
 	markdown_table += " | ".join(["---"] * len(headers)) + "\n"
@@ -269,18 +269,18 @@ def benchLinearMarlin(input_dim, output_dim):#, out_file
 	#print("-------------------------------------------------------------")
 
 if __name__ == "__main__":
-	
+
 	benchLinearMarlin(5120, 3584)
 	exit(0)
-	
+
 	max_batch = 1
 	cur_batch = 1
 
 
 	marlin_linear = LinearMarlin(5120, 3584)
 
-	input_tensor = torch.randn(max_batch, 1, 5120, device="cuda", dtype=torch.bfloat16)
-	bsz_tensor = torch.tensor([max_batch], device="cuda", dtype=torch.int32)
+	input_tensor = torch.randn(max_batch, 1, 5120, device="musa", dtype=torch.bfloat16)
+	bsz_tensor = torch.tensor([max_batch], device="musa", dtype=torch.int32)
 
 	out_truth = marlin_linear(input_tensor, bsz_tensor)
 
@@ -289,26 +289,26 @@ if __name__ == "__main__":
 	g = torch.cuda.CUDAGraph()
 	with torch.cuda.graph(g):
 		out_buf = marlin_linear(input_tensor, bsz_tensor)
-	
+
 	for i in range(10000):
 		g.replay()
-	
+
 	#torch.testing.assert_close(out_buf, out_truth, rtol=1e-3, atol=1e-3)
-	
+
 	marlin_linear = LinearMarlin(5120, 3584)
 	g = torch.cuda.CUDAGraph()
 	with torch.cuda.graph(g):
 		out_buf = marlin_linear(input_tensor, bsz_tensor)
-	
-	new_input = torch.randn(cur_batch, 1, 5120, device="cuda", dtype=torch.bfloat16)
-	bsz_tensor.copy_(torch.tensor([cur_batch], device="cuda", dtype=torch.int32))
-	
+
+	new_input = torch.randn(cur_batch, 1, 5120, device="musa", dtype=torch.bfloat16)
+	bsz_tensor.copy_(torch.tensor([cur_batch], device="musa", dtype=torch.int32))
+
 	new_out_truth = marlin_linear(new_input, bsz_tensor)
 	input_tensor[:cur_batch].copy_(new_input)
 	input_tensor[cur_batch:] = 0
-	
+
 	g.replay()
-	
+
 	torch.cuda.synchronize()
 
 	def printMinMax(tensor):

@@ -39,7 +39,7 @@ class KTransformersInterface(TransformersInterface):
                 top_p=args.top_p,
                 do_sample=True
             )
-        
+
         torch.set_default_dtype(config.torch_dtype)
         if config.architectures[0] == "Qwen2MoeForCausalLM":
             config._attn_implementation = "flash_attention_2"
@@ -83,7 +83,7 @@ class KTransformersInterface(TransformersInterface):
 
         device_map = self.model.gguf_loader.tensor_device_map
         torch_device = get_device("blk.0.self_attn", device_map)
-        torch_device = "cuda:0" if torch_device == "cuda" else torch_device
+        torch_device = "musa:0" if torch_device == "musa" else torch_device
         torch.cuda.set_device(torch_device)
         if warm_uped and self.args.use_cuda_graph:
             if not hasattr(self, "cuda_graph_runner"):
@@ -107,10 +107,10 @@ class KTransformersInterface(TransformersInterface):
                 torch.cuda.synchronize()
                 logits = logits[0, -1, :]
                 return self.logits_to_token(logits)
-        
+
         if self.args.use_cuda_graph:
             warm_uped = True
-            
+
         if self.use_static_cache:
             logits = self.model(
                 self.current_ids.to(torch_device),
@@ -135,8 +135,8 @@ class KTransformersInterface(TransformersInterface):
             self.seq_length = input_ids_length
             return
         logger.debug(f"input_ids: {input_ids.shape}")
-        device = self.device_map.get("blk.0.self_attn", {}).get("generate_device", "cuda:0")
-        device = "cuda:0" if device == "cuda" else device
+        device = self.device_map.get("blk.0.self_attn", {}).get("generate_device", "musa:0")
+        device = "musa:0" if device == "musa" else device
 
         if is_new:
             self.ever_generated_ids.clear()
@@ -150,15 +150,15 @@ class KTransformersInterface(TransformersInterface):
                     dtype=torch.int,
                     device=self.args.device,
                 )
-                self.seq_length = 1            
-            
+                self.seq_length = 1
+
             flat_prev_ids = self.generated_ids.flatten()
             for i in range(min(self.seq_length, flat_input_ids.shape[0]) - 1):
                 if flat_input_ids[i] == flat_prev_ids[i]:
                     same_prefix += 1
                 else:
                     break
-            
+
             logger.debug(f"same prefix len: {same_prefix}")
             self.cache.remove_suffix(same_prefix)
             self.seq_length = same_prefix
@@ -170,7 +170,7 @@ class KTransformersInterface(TransformersInterface):
         self.profiler.set_counter("prefill", input_ids_length)
         logger.debug(f"input_ids: {input_ids.shape}")
         logger.debug(f"generate_ids: {self.generated_ids.shape}")
-        
+
         former_seq_length = self.seq_length
         self.seq_length += input_ids_length
         expected_length = min(self.seq_length + self.args.max_new_tokens + 1, self.args.cache_lens)
@@ -183,14 +183,14 @@ class KTransformersInterface(TransformersInterface):
         else:
             logger.warning(f"seq_length bigger than cache_lens, killed")
             exit(0)
-        
+
         logger.debug(f"cache position: {former_seq_length} to {self.seq_length}")
         cache_position = torch.arange(former_seq_length, self.seq_length, device=device)
         self.generated_ids[:, cache_position] = input_ids.to(self.args.device).to(torch.int)
 
         if not (type(self) is TransformersInterface):
             input_ids = input_ids.to("cpu")
-        
+
         def chunk_prefill(input_ids, cache_position):
             inputs_embeds = self.model.model.embed_tokens(input_ids).to(device)
             torch.cuda.set_device(device)
@@ -216,7 +216,7 @@ class KTransformersInterface(TransformersInterface):
                 self.cache.cur_idx=cache_position[chunk_start:chunk_end]
             logits = chunk_prefill(input_ids[:, chunk_start:chunk_end], cache_position[chunk_start:chunk_end])
             chunk_start += self.args.chunk_size
-            
+
         if flashinfer_enabled:
             MLAWrapperSingleton.reset_buffer()
         self.prepare_logits_wrapper(input_ids, device, temperature, top_p)
@@ -225,14 +225,14 @@ class KTransformersInterface(TransformersInterface):
 
     @property
     def active_cache_position(self):
-        device = self.device_map.get("blk.0.self_attn", {}).get("generate_device", "cuda:0")
+        device = self.device_map.get("blk.0.self_attn", {}).get("generate_device", "musa:0")
         return torch.tensor([self.seq_length - 1], device=device)
-    
+
     async def inference(self, local_messages, thread_id: str, temperature: Optional[float] = None, top_p: Optional[float] = None):
         async with self._infer_lock:
             async for v in super().inference(local_messages, thread_id, temperature, top_p):
                 yield v
-            
+
             # return this inference raw usage
             yield RawUsage(
                 tokenize_time = self.profiler.get_timer_sec('tokenize'),

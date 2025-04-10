@@ -12,8 +12,8 @@ class kDeepseekV3MLP(DeepseekV3MLP, BaseInjectedModule):
                  gguf_loader : GGUFLoader,
                  config: PretrainedConfig,
                  orig_module: nn.Module,
-                 prefill_device: str = "cuda",
-                 generate_device: str = "cuda",
+                 prefill_device: str = "musa",
+                 generate_device: str = "musa",
                  **kwargs):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, prefill_device, **kwargs)
         self.orig_module.__init__(orig_module.config,

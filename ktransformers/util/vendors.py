@@ -103,7 +103,7 @@ class DeviceManager:
             device_id: Device index (0, 1, 2, etc.), -1 for CPU, or "cpu" string
 
         Returns:
-            Device string representation (e.g., "cuda:0", "musa:1", "cpu")
+            Device string representation (e.g., "musa:0", "musa:1", "cpu")
         """
         if device_id == -1 or device_id == "cpu":
             return "cpu"
@@ -111,7 +111,7 @@ class DeviceManager:
         if isinstance(device_id, int):
             if self.gpu_vendor == GPUVendor.NVIDIA or self.gpu_vendor == GPUVendor.AMD:
                 if device_id < torch.cuda.device_count():
-                    return f"cuda:{device_id}"
+                    return f"musa:{device_id}"
             elif self.gpu_vendor == GPUVendor.MooreThreads:
                 if device_id < torch.musa.device_count():
                         return f"musa:{device_id}"
